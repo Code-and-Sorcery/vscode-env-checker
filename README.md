@@ -55,16 +55,23 @@ Issues and pull requests are welcome in the [GitHub repository](https://github.c
 
 ```bash
 pnpm install
-pnpm run compile
+pnpm run compile    # esbuild bundle → out/extension.js
+pnpm run typecheck  # tsc --noEmit
 ```
 
-Press **F5** in VS Code to launch the **Extension Development Host** with this extension loaded.
+Press **F5** in VS Code to launch the **Extension Development Host** (default build task runs `pnpm run watch`, which rebuilds the bundle on save).
 
-### Publishing
+### Publishing to the Marketplace
 
 1. Create a [publisher](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#create-a-publisher) on the Visual Studio Marketplace if you do not have one.
-2. Set the `publisher` field in `package.json` to your publisher id (replace the placeholder used for local development if needed).
-3. Run `vsce package` (install with `npm i -g @vscode/vsce`) and upload the `.vsix`, or `vsce publish`.
+2. Set the `publisher` field in `package.json` to your **exact** Marketplace publisher id (the default in this repo is `code-and-sorcery`; change it if yours differs).
+3. Create a [Personal Access Token](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) with **Marketplace (Manage)** scope.
+4. Log in once: `pnpm exec vsce login <publisher-id>`
+5. Publish a new version:
+   - Bump `version` in `package.json`, then run **`pnpm run publish:marketplace`**, or
+   - Produce a VSIX only: **`pnpm run pack`** (artifact: `vscode-env-checker-<version>.vsix`), then upload it from the [publisher management page](https://marketplace.visualstudio.com/manage).
+
+**CI:** pushing a git tag `v*` runs `.github/workflows/publish.yml` if you add a repository secret **`VSCE_PAT`** (same token as above).
 
 ## License
 

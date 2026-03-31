@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-03-31
 
+### Build
+
+- Production bundle with esbuild (`out/extension.js` only): Lucide icons ship inside the extension, no `node_modules` in the VSIX.
+- Scripts: `pnpm run pack` (VSIX), `pnpm run publish:marketplace`, `pnpm run typecheck`.
+
 ### Added
 
 - Custom editor for `.env` and `.env.*` files with a formatted comparison view

@@ -3,7 +3,7 @@
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
   "version": "0.1.0",
-  "publisher": "local",
+  "publisher": "CodeandSorcery",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -161,15 +161,19 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "compile": "rimraf out && esbuild src/extension.ts --bundle --platform=node --target=node18 --external:vscode --sourcemap --legal-comments=none --outfile=out/extension.js --format=cjs",
+    "watch": "esbuild src/extension.ts --bundle --platform=node --target=node18 --external:vscode --sourcemap --legal-comments=none --outfile=out/extension.js --format=cjs --watch=forever",
+    "typecheck": "tsc --noEmit -p ./",
+    "pack": "vsce package --no-dependencies",
+    "publish:marketplace": "vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.27.4",
+    "lucide": "^1.7.0",
+    "rimraf": "^6.1.3",
     "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "lucide": "^1.7.0"
   }
 }
