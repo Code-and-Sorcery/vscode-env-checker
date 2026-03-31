@@ -48,25 +48,64 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     select:disabled { opacity: 0.55; }
     .hint { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: middle; word-break: break-word; }
-    th { background: var(--head); font-weight: 600; font-size: 12px; }
-    th.col-icon, td.col-icon { width: 36px; text-align: center; padding-left: 4px; padding-right: 4px; }
-    th.col-key, td.col-key { width: 26%; font-family: var(--mono); font-size: 12px; }
-    th.col-val, td.col-val { width: auto; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
-    th.col-act, td.col-act { width: 88px; text-align: center; }
-    th.col-doc, td.col-doc { width: 40px; text-align: center; }
-    tr.row-both td { background: var(--row-both); }
-    tr.row-baseOnly td { background: var(--row-base); }
-    tr.row-compareOnly td { background: var(--row-compare); }
-    tr.row-neutral td { background: transparent; }
-    .icon-cell { display: flex; align-items: center; justify-content: center; }
-    svg.icon-svg { display: block; width: 16px; height: 16px; flex-shrink: 0; }
-    .info-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border);
-      background: var(--btn-bg); color: var(--btn-fg); cursor: help; padding: 0; margin: 0 auto;
+    th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; word-break: break-word; }
+    tbody td { vertical-align: middle; }
+    th { background: var(--head); font-weight: 600; font-size: 12px; vertical-align: middle; }
+    th.col-diff, td.col-diff { width: 44px; padding: 0; text-align: center; vertical-align: middle; }
+    th.col-diff { padding: 6px 4px; }
+    tbody td.col-diff { height: 1px; }
+    td.col-diff .diff-inner {
+      display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+      height: 100%; min-height: 100%; padding: 6px 4px;
     }
-    .info-btn:hover { filter: brightness(1.08); }
+    tr.env-doc-above.row-both td { background: var(--row-both); }
+    tr.env-doc-above.row-both td.col-doc-above { vertical-align: top; }
+    tr.env-data-row.row-both td:not(.col-diff) { background: var(--row-both); }
+    tr.env-data-row.row-both td.col-diff { background: transparent; }
+    tr.env-data-row.row-both .diff-inner { background: var(--row-both); }
+    tr.env-doc-above.row-baseOnly td { background: var(--row-base); }
+    tr.env-doc-above.row-baseOnly td.col-doc-above { vertical-align: top; }
+    tr.env-data-row.row-baseOnly td:not(.col-diff) { background: var(--row-base); }
+    tr.env-data-row.row-baseOnly td.col-diff { background: transparent; }
+    tr.env-data-row.row-baseOnly .diff-inner { background: var(--row-base); }
+    tr.env-doc-above.row-compareOnly td { background: var(--row-compare); }
+    tr.env-doc-above.row-compareOnly td.col-doc-above { vertical-align: top; }
+    tr.env-data-row.row-compareOnly td:not(.col-diff) { background: var(--row-compare); }
+    tr.env-data-row.row-compareOnly td.col-diff { background: transparent; }
+    tr.env-data-row.row-compareOnly .diff-inner { background: var(--row-compare); }
+    tr.env-doc-above.row-neutral td { background: transparent; }
+    tr.env-doc-above.row-neutral td.col-doc-above { vertical-align: top; }
+    tr.env-data-row.row-neutral td:not(.col-diff) { background: transparent; }
+    tr.env-data-row.row-neutral .diff-inner { background: transparent; }
+    th.col-key, td.col-key { width: 26%; font-family: var(--mono); font-size: 12px; }
+    th.col-val, td.col-val { width: 38%; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
+    th.col-edit, td.col-edit { width: 100px; text-align: center; vertical-align: middle; padding: 4px 6px; }
+    td.col-edit.rowspan-edit { vertical-align: middle; }
+    tr.env-doc-above.row-both td.col-edit.rowspan-edit { background: var(--row-both); }
+    tr.env-doc-above.row-baseOnly td.col-edit.rowspan-edit { background: var(--row-base); }
+    tr.env-doc-above.row-compareOnly td.col-edit.rowspan-edit { background: var(--row-compare); }
+    tr.env-doc-above.row-neutral td.col-edit.rowspan-edit { background: transparent; }
+    td.col-doc-above { padding: 8px 10px; }
+    .doc-above-display {
+      font-size: 11px; color: var(--muted); line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+      min-height: 1.2em;
+    }
+    textarea.doc-ta-above {
+      width: 100%; box-sizing: border-box; min-height: 72px; resize: vertical;
+      font-family: var(--mono); font-size: 12px; color: var(--fg); background: var(--bg);
+      border: 1px solid var(--border); padding: 8px; border-radius: 2px;
+    }
+    input.inp-row-edit {
+      width: 100%; box-sizing: border-box; font-family: var(--mono); font-size: 12px;
+      color: var(--fg); background: var(--bg); border: 1px solid var(--border); padding: 5px 6px; border-radius: 2px;
+    }
+    svg.icon-svg { display: block; width: 16px; height: 16px; flex-shrink: 0; }
+    button.btn-doc-edit {
+      font-size: 10px; padding: 2px 7px; cursor: pointer; border: 1px solid var(--border); border-radius: 2px;
+      background: var(--btn-bg); color: var(--btn-fg); line-height: 1.2;
+    }
+    button.btn-doc-edit:hover { filter: brightness(1.08); }
+    .row-edit-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
     button.row-action {
       font-size: 11px;
       padding: 4px 8px;
@@ -79,20 +118,13 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     button.row-action:hover { filter: brightness(1.1); }
     .empty { color: var(--muted); padding: 16px 0; font-size: 13px; }
     tfoot.add-foot td { padding: 6px 8px; vertical-align: middle; border: 1px solid var(--border); }
+    tfoot.add-foot td.col-diff { padding: 0; }
     tfoot.add-foot input.inp-new {
       width: 100%; box-sizing: border-box; font-family: var(--mono); font-size: 12px;
       color: var(--fg); background: var(--bg); border: 1px solid var(--border);
       padding: 5px 6px; border-radius: 2px;
     }
     tfoot.add-foot input.inp-new::placeholder { color: var(--muted); opacity: 0.85; }
-    .add-plus-wrap { margin-top: 10px; display: flex; justify-content: center; }
-    button.btn-add-plus {
-      display: inline-flex; align-items: center; justify-content: center;
-      min-width: 36px; min-height: 32px; padding: 6px 14px; cursor: pointer;
-      border: 1px solid var(--border); border-radius: 4px;
-      background: var(--btn-bg); color: var(--btn-fg); font-size: 18px; line-height: 1;
-    }
-    button.btn-add-plus:hover { filter: brightness(1.1); }
   </style>
 </head>
 <body>
@@ -120,8 +152,6 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     const svgCheck = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3 3 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const svgMinus = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
     const svgPlus = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 4v8M4 8h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-    const svgInfo = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.2V11M8 5.1h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
-
     function fillSelect(select, files, selectedPath, includeEmpty) {
       select.innerHTML = '';
       if (includeEmpty) {
@@ -219,80 +249,160 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
-      thead.innerHTML = '<tr><th class="col-icon"></th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-act"></th><th class="col-doc"></th></tr>';
+      thead.innerHTML = '<tr><th class="col-diff">Diff</th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-edit"></th></tr>';
       table.appendChild(thead);
       const tb = document.createElement('tbody');
 
-      for (const row of payload.rows) {
-        const tr = document.createElement('tr');
-        tr.className = 'row-' + row.status;
-
-        const tdIcon = document.createElement('td');
-        tdIcon.className = 'col-icon icon-cell';
+      function setDiffIcon(diffInner, row) {
         if (row.status === 'both') {
-          tdIcon.innerHTML = svgCheck;
-          tdIcon.style.color = 'var(--icon-both)';
+          diffInner.innerHTML = svgCheck;
+          diffInner.style.color = 'var(--icon-both)';
         } else if (row.status === 'baseOnly') {
-          tdIcon.innerHTML = svgMinus;
+          diffInner.innerHTML = svgMinus;
+          diffInner.style.color = '';
         } else if (row.status === 'compareOnly') {
-          tdIcon.innerHTML = svgPlus;
-        } else {
-          tdIcon.textContent = '';
+          diffInner.innerHTML = svgPlus;
+          diffInner.style.color = '';
         }
-        tr.appendChild(tdIcon);
+      }
+
+      for (const row of payload.rows) {
+        var editing = window.__editingRowKey === row.key && row.status !== 'compareOnly';
+        let taDoc = null;
+        let inpKey = null;
+        let inpVal = null;
+        var hasDoc = !!(row.documentation && String(row.documentation).trim());
+        var docRowVisible = editing || hasDoc;
+        /** Cellule Éditer : rowspan 2 si ligne doc au-dessus, sinon une seule ligne sur trData. */
+        var tdEdit = null;
+
+        if (docRowVisible) {
+          const trDoc = document.createElement('tr');
+          trDoc.className = 'env-doc-above row-' + row.status;
+          const tdDiffRowspan = document.createElement('td');
+          tdDiffRowspan.className = 'col-diff diff-rowspan';
+          tdDiffRowspan.rowSpan = 2;
+          const diffInnerSpan = document.createElement('div');
+          diffInnerSpan.className = 'diff-inner';
+          setDiffIcon(diffInnerSpan, row);
+          tdDiffRowspan.appendChild(diffInnerSpan);
+          trDoc.appendChild(tdDiffRowspan);
+          const tdDocMerged = document.createElement('td');
+          tdDocMerged.colSpan = 2;
+          tdDocMerged.className = 'col-doc-above';
+          if (editing) {
+            taDoc = document.createElement('textarea');
+            taDoc.className = 'doc-ta-above';
+            taDoc.value = row.documentation || '';
+            taDoc.setAttribute('aria-label', 'Documentation pour ' + row.key);
+            tdDocMerged.appendChild(taDoc);
+          } else {
+            var docDisp = document.createElement('div');
+            docDisp.className = 'doc-above-display';
+            docDisp.textContent = row.documentation;
+            tdDocMerged.appendChild(docDisp);
+          }
+          trDoc.appendChild(tdDocMerged);
+          tdEdit = document.createElement('td');
+          tdEdit.className = 'col-edit rowspan-edit';
+          tdEdit.rowSpan = 2;
+          trDoc.appendChild(tdEdit);
+          tb.appendChild(trDoc);
+        }
+
+        const trData = document.createElement('tr');
+        trData.className = 'env-data-row row-' + row.status;
+        trData.dataset.envKey = row.key;
+
+        if (!docRowVisible) {
+          const tdDiff = document.createElement('td');
+          tdDiff.className = 'col-diff';
+          const diffInner = document.createElement('div');
+          diffInner.className = 'diff-inner';
+          setDiffIcon(diffInner, row);
+          tdDiff.appendChild(diffInner);
+          trData.appendChild(tdDiff);
+        }
 
         const tdKey = document.createElement('td');
         tdKey.className = 'col-key';
-        tdKey.textContent = row.key;
-        tr.appendChild(tdKey);
+        if (editing) {
+          inpKey = document.createElement('input');
+          inpKey.type = 'text';
+          inpKey.className = 'inp-row-edit';
+          inpKey.value = row.key;
+          inpKey.setAttribute('autocomplete', 'off');
+          tdKey.appendChild(inpKey);
+        } else {
+          tdKey.textContent = row.key;
+        }
+        trData.appendChild(tdKey);
 
         const tdVal = document.createElement('td');
         tdVal.className = 'col-val';
-        tdVal.textContent = row.value;
-        tr.appendChild(tdVal);
+        if (editing) {
+          inpVal = document.createElement('input');
+          inpVal.type = 'text';
+          inpVal.className = 'inp-row-edit';
+          inpVal.value = row.value;
+          inpVal.setAttribute('autocomplete', 'off');
+          tdVal.appendChild(inpVal);
+        } else {
+          tdVal.textContent = row.value;
+        }
+        trData.appendChild(tdVal);
 
-        const tdAct = document.createElement('td');
-        tdAct.className = 'col-act';
-        if (row.status === 'baseOnly' && payload.comparePath) {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'row-action';
-          btn.textContent = 'Supprimer';
-          btn.addEventListener('click', function () {
-            vscode.postMessage({ type: 'deleteKey', basePath: payload.basePath, key: row.key });
-          });
-          tdAct.appendChild(btn);
-        } else if (row.status === 'compareOnly' && payload.basePath && payload.comparePath) {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'row-action';
-          btn.textContent = 'Ajouter';
-          btn.addEventListener('click', function () {
-            vscode.postMessage({
-              type: 'addKey',
-              basePath: payload.basePath,
-              comparePath: payload.comparePath,
-              key: row.key
+        if (!docRowVisible) {
+          tdEdit = document.createElement('td');
+          tdEdit.className = 'col-edit';
+        }
+        if (row.status !== 'compareOnly') {
+          if (editing && taDoc && inpKey && inpVal) {
+            var act = document.createElement('div');
+            act.className = 'row-edit-actions';
+            var btnSave = document.createElement('button');
+            btnSave.type = 'button';
+            btnSave.className = 'row-action';
+            btnSave.textContent = 'Enregistrer';
+            btnSave.addEventListener('click', function () {
+              vscode.postMessage({
+                type: 'saveRow',
+                basePath: payload.basePath,
+                originalKey: row.key,
+                key: inpKey.value.trim(),
+                value: inpVal.value,
+                comment: taDoc.value
+              });
             });
-          });
-          tdAct.appendChild(btn);
+            var btnCancel = document.createElement('button');
+            btnCancel.type = 'button';
+            btnCancel.className = 'row-action';
+            btnCancel.textContent = 'Annuler';
+            btnCancel.addEventListener('click', function () {
+              window.__editingRowKey = null;
+              render(window.__lastPayload);
+            });
+            act.appendChild(btnSave);
+            act.appendChild(btnCancel);
+            tdEdit.appendChild(act);
+          } else if (!editing) {
+            var btnEdit = document.createElement('button');
+            btnEdit.type = 'button';
+            btnEdit.className = 'btn-doc-edit';
+            btnEdit.textContent = 'Éditer';
+            btnEdit.addEventListener('click', function (ev) {
+              ev.preventDefault();
+              window.__editingRowKey = row.key;
+              render(window.__lastPayload);
+            });
+            tdEdit.appendChild(btnEdit);
+          }
         }
-        tr.appendChild(tdAct);
-
-        const tdDoc = document.createElement('td');
-        tdDoc.className = 'col-doc';
-        if (row.documentation) {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'info-btn';
-          b.title = row.documentation;
-          b.setAttribute('aria-label', 'Documentation');
-          b.innerHTML = svgInfo;
-          tdDoc.appendChild(b);
+        if (!docRowVisible) {
+          trData.appendChild(tdEdit);
         }
-        tr.appendChild(tdDoc);
 
-        tb.appendChild(tr);
+        tb.appendChild(trData);
       }
       table.appendChild(tb);
 
@@ -300,49 +410,39 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       foot.className = 'add-foot';
       const trAdd = document.createElement('tr');
       const tdIconF = document.createElement('td');
-      tdIconF.className = 'col-icon';
+      tdIconF.className = 'col-diff';
       const tdKeyF = document.createElement('td');
       tdKeyF.className = 'col-key';
-      const inpKey = document.createElement('input');
-      inpKey.type = 'text';
-      inpKey.className = 'inp-new';
-      inpKey.id = 'inp-new-key';
-      inpKey.placeholder = 'Nouvelle clé';
-      inpKey.setAttribute('autocomplete', 'off');
-      tdKeyF.appendChild(inpKey);
+      const inpNewKey = document.createElement('input');
+      inpNewKey.type = 'text';
+      inpNewKey.className = 'inp-new';
+      inpNewKey.id = 'inp-new-key';
+      inpNewKey.placeholder = 'Nouvelle clé';
+      inpNewKey.setAttribute('autocomplete', 'off');
+      inpNewKey.setAttribute('title', 'Appuyez sur Entrée pour ajouter la variable au fichier de base');
+      tdKeyF.appendChild(inpNewKey);
       const tdValF = document.createElement('td');
       tdValF.className = 'col-val';
-      const inpVal = document.createElement('input');
-      inpVal.type = 'text';
-      inpVal.className = 'inp-new';
-      inpVal.id = 'inp-new-val';
-      inpVal.placeholder = 'Valeur';
-      inpVal.setAttribute('autocomplete', 'off');
-      tdValF.appendChild(inpVal);
-      const tdActF = document.createElement('td');
-      tdActF.className = 'col-act';
-      const tdDocF = document.createElement('td');
-      tdDocF.className = 'col-doc';
+      const inpNewVal = document.createElement('input');
+      inpNewVal.type = 'text';
+      inpNewVal.className = 'inp-new';
+      inpNewVal.id = 'inp-new-val';
+      inpNewVal.placeholder = 'Valeur';
+      inpNewVal.setAttribute('autocomplete', 'off');
+      inpNewVal.setAttribute('title', 'Appuyez sur Entrée pour ajouter la variable au fichier de base');
+      tdValF.appendChild(inpNewVal);
+      const tdEditF = document.createElement('td');
+      tdEditF.className = 'col-edit';
       trAdd.appendChild(tdIconF);
       trAdd.appendChild(tdKeyF);
       trAdd.appendChild(tdValF);
-      trAdd.appendChild(tdActF);
-      trAdd.appendChild(tdDocF);
+      trAdd.appendChild(tdEditF);
       foot.appendChild(trAdd);
       table.appendChild(foot);
 
-      const plusWrap = document.createElement('div');
-      plusWrap.className = 'add-plus-wrap';
-      const btnPlus = document.createElement('button');
-      btnPlus.type = 'button';
-      btnPlus.className = 'btn-add-plus';
-      btnPlus.setAttribute('aria-label', 'Ajouter la variable');
-      btnPlus.innerHTML = svgPlus;
-      btnPlus.addEventListener('click', function () {
-        var kEl = document.getElementById('inp-new-key');
-        var vEl = document.getElementById('inp-new-val');
-        var k = kEl ? kEl.value.trim() : '';
-        var v = vEl ? vEl.value : '';
+      function submitNewRow() {
+        var k = inpNewKey.value.trim();
+        var v = inpNewVal.value;
         if (!k) {
           return;
         }
@@ -352,27 +452,23 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           key: k,
           value: v
         });
-      });
-      plusWrap.appendChild(btnPlus);
-
+      }
       function tryAddFromEnter(ev) {
         if (ev.key === 'Enter') {
           ev.preventDefault();
-          btnPlus.click();
+          submitNewRow();
         }
       }
-      inpKey.addEventListener('keydown', tryAddFromEnter);
-      inpVal.addEventListener('keydown', tryAddFromEnter);
+      inpNewKey.addEventListener('keydown', tryAddFromEnter);
+      inpNewVal.addEventListener('keydown', tryAddFromEnter);
 
-      const frag = document.createDocumentFragment();
-      frag.appendChild(table);
-      frag.appendChild(plusWrap);
-      tableWrap.replaceChildren(frag);
+      tableWrap.replaceChildren(table);
     }
 
     window.addEventListener('message', function (event) {
       const m = event.data;
       if (m && m.type === 'comparePayload' && m.payload) {
+        window.__editingRowKey = null;
         render(m.payload);
       }
     });

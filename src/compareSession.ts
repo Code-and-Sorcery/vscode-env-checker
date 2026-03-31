@@ -11,6 +11,7 @@ import {
   appendManualEntryToBase,
   deleteKeyFromEnvFile,
   isValidEnvKey,
+  saveEnvRowEdit,
 } from './envFileEdit';
 import { getEnvCheckerWebviewHtml, postComparePayloadToWebview } from './webview';
 
@@ -171,6 +172,32 @@ export class CompareSession {
       } catch (e) {
         if (e instanceof Error && e.message === 'INVALID_KEY') {
           vscode.window.showWarningMessage('Clé invalide.');
+        }
+      }
+      return;
+    }
+    if (type === 'saveRow') {
+      const baseFs = msg.basePath as string;
+      const originalKey = typeof msg.originalKey === 'string' ? msg.originalKey : '';
+      const key = typeof msg.key === 'string' ? msg.key : '';
+      const value = typeof msg.value === 'string' ? msg.value : '';
+      const comment = typeof msg.comment === 'string' ? msg.comment : '';
+      if (!baseFs || !originalKey) {
+        return;
+      }
+      try {
+        await saveEnvRowEdit(baseFs, originalKey, key, value, comment);
+        await this.push();
+      } catch (e) {
+        const err = e instanceof Error ? e.message : '';
+        if (err === 'INVALID_KEY') {
+          vscode.window.showWarningMessage(
+            'Clé invalide : utilisez des lettres, des chiffres et des underscores (ne commence pas par un chiffre).',
+          );
+        } else if (err === 'DUPLICATE_KEY') {
+          vscode.window.showWarningMessage(`La clé « ${key.trim()} » existe déjà dans le fichier de base.`);
+        } else if (err === 'KEY_NOT_FOUND') {
+          vscode.window.showWarningMessage('Variable introuvable dans le fichier de base.');
         }
       }
     }
