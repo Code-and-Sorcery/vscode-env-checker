@@ -1,0 +1,11 @@
+{
+  "extension.displayName": "Env Checker",
+  "extension.description": "Compare and inspect .env files: tables, documentation from comments, and missing variables across variants.",
+  "view.envChecker.displayName": "Env Checker",
+  "config.title": "Env Checker",
+  "config.relatedFileNames.description": "Base file names (same folder) to consider as related env files for comparison, in addition to the active file.",
+  "command.openFormattedView.title": "Env Checker: Open formatted view",
+  "command.compareEnvFiles.title": "Env Checker: Compare env files…",
+  "command.compareWithExample.title": "Env Checker: Compare with .env.example (and related)",
+  "command.reopenAsTextEditor.title": "Env Checker: Reopen as text editor"
+}

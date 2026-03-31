@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import type { CompareViewPayload } from './compareModel';
 import { webviewLucideHtml } from './lucideSvg';
+import { t, uiLanguageTag } from './nls';
+
+function escAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
 
 export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string): string {
   const csp = [
@@ -9,13 +14,48 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     `script-src 'nonce-${nonce}'`,
   ].join('; ');
 
+  const htmlLang = uiLanguageTag();
+  const pageTitle = t('Env Checker');
+  const ui = {
+    showValues: t('Show values'),
+    hideValues: t('Hide values'),
+    showValueColumn: t('Show values in the Value column'),
+    hideValueColumn: t('Hide values (each character shown as *)'),
+    openBaseAria: t('Open base file in text editor'),
+    openBaseTitle: t('Open the base .env in the text editor (outside Env Checker view)'),
+    noComparison: t('— No comparison —'),
+    labelBase: t('Base file'),
+    labelCompare: t('Comparison file'),
+    baseSelectTitle: t('Base file is fixed by the open editor'),
+    theadOrder: t('Order'),
+    theadDiff: t('Diff'),
+    theadKey: t('Key'),
+    theadValue: t('Value'),
+    theadAction: t('Action'),
+    reorder: t('Reorder'),
+    deleteFromBaseAria: t('Remove from base file'),
+    deleteFromBaseTitle: t('Remove this variable from the base file'),
+    addToBaseAria: t('Add to base file'),
+    addToBaseTitle: t('Add this variable to the base file'),
+    saveAria: t('Save'),
+    cancelAria: t('Cancel'),
+    editAria: t('Edit'),
+    confirmDeleteAria: t('Confirm delete'),
+    confirmDeleteTitle: t('Click again to remove from the base file'),
+    newKeyPh: t('New key'),
+    valuePh: t('Value'),
+    newRowEnterTitle: t('Press Enter to add the variable to the base file'),
+    docFor: t('Documentation for {0}'),
+  };
+  const uiJson = JSON.stringify(ui).replace(/</g, '\\u003c');
+
   return `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${escAttr(htmlLang)}">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Env Checker</title>
+  <title>${escAttr(pageTitle)}</title>
   <style>
     :root {
       --border: var(--vscode-panel-border, #444);
@@ -223,21 +263,23 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
 </head>
 <body>
   <header class="page-header">
-    <h1>Env Checker</h1>
+    <h1>${escAttr(pageTitle)}</h1>
     <div class="page-header-actions">
       <button type="button" id="btn-open-base-text" class="btn-mask-toggle" disabled
-        aria-label="Ouvrir le fichier de base en éditeur texte"
-        title="Ouvrir le .env de base dans l’éditeur texte (hors vue Env Checker)"></button>
-      <button type="button" id="btn-mask-values" class="btn-mask-toggle" aria-pressed="true" title="Afficher les valeurs"></button>
+        aria-label="${escAttr(ui.openBaseAria)}"
+        title="${escAttr(ui.openBaseTitle)}"></button>
+      <button type="button" id="btn-mask-values" class="btn-mask-toggle" aria-pressed="true" title="${escAttr(
+        ui.showValues,
+      )}"></button>
     </div>
   </header>
   <div class="toolbar">
     <div class="field">
-      <label for="sel-base">Fichier de base</label>
-      <select id="sel-base" disabled aria-disabled="true" title="Fichier de base imposé par l’éditeur ouvert"></select>
+      <label for="sel-base">${escAttr(ui.labelBase)}</label>
+      <select id="sel-base" disabled aria-disabled="true" title="${escAttr(ui.baseSelectTitle)}"></select>
     </div>
     <div class="field">
-      <label for="sel-compare">Fichier de comparaison</label>
+      <label for="sel-compare">${escAttr(ui.labelCompare)}</label>
       <select id="sel-compare"></select>
     </div>
   </div>
@@ -245,6 +287,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
   <div id="table-wrap"></div>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+    const UI = ${uiJson};
 
     const selBase = document.getElementById('sel-base');
     const selCompare = document.getElementById('sel-compare');
@@ -295,8 +338,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       var masked = !!window.__maskValues;
       btn.innerHTML = masked ? svgEyeClosed : svgEye;
       btn.setAttribute('aria-pressed', masked ? 'true' : 'false');
-      btn.setAttribute('aria-label', masked ? 'Afficher les valeurs' : 'Masquer les valeurs');
-      btn.title = masked ? 'Afficher les valeurs de la colonne Valeur' : 'Masquer les valeurs (chaque caractère affiché comme *)';
+      btn.setAttribute('aria-label', masked ? UI.showValues : UI.hideValues);
+      btn.title = masked ? UI.showValueColumn : UI.hideValueColumn;
     }
 
     function syncOpenBaseTextButton() {
@@ -354,8 +397,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       }
       b.innerHTML = svgMinus;
       b.removeAttribute('data-delete-phase');
-      b.setAttribute('aria-label', 'Supprimer du fichier de base');
-      b.setAttribute('title', 'Supprimer cette variable du fichier de base');
+      b.setAttribute('aria-label', UI.deleteFromBaseAria);
+      b.setAttribute('title', UI.deleteFromBaseTitle);
       b.classList.remove('row-action-delete-armed');
       window.__armedDeleteBtn = null;
     }
@@ -386,7 +429,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       if (includeEmpty) {
         const o = document.createElement('option');
         o.value = '';
-        o.textContent = '— Aucune comparaison —';
+        o.textContent = UI.noComparison;
         select.appendChild(o);
       }
       var matched = false;
@@ -437,7 +480,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       resetDeleteConfirmButton();
 
       if (payload.noEnvFiles) {
-        hint.textContent = 'Aucun fichier .env dans ce dossier.';
+        hint.textContent = payload.hintText;
         tableWrap.innerHTML = '';
         selBase.innerHTML = '';
         selBase.disabled = true;
@@ -466,20 +509,17 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       }
 
       if (!payload.basePath) {
-        hint.textContent = 'Choisissez un fichier de base pour afficher le tableau.';
-        tableWrap.innerHTML = '<p class="empty">Aucun tableau : pas de fichier de base.</p>';
+        hint.textContent = payload.hintText;
+        tableWrap.replaceChildren();
+        var emptyP = document.createElement('p');
+        emptyP.className = 'empty';
+        emptyP.textContent = payload.emptyStateText || '';
+        tableWrap.appendChild(emptyP);
         syncOpenBaseTextButton();
         return;
       }
 
-      var cmpLabel = '';
-      if (payload.comparePath) {
-        var cf = payload.envFiles.find(function (f) { return f.path === payload.comparePath; });
-        cmpLabel = cf ? cf.label : '';
-      }
-      hint.textContent = payload.comparePath
-        ? 'Comparaison par clé avec « ' + cmpLabel + ' ».'
-        : 'Aucun fichier de comparaison : affichage des seules clés du fichier de base.';
+      hint.textContent = payload.hintText;
 
       const table = document.createElement('table');
       const cg = document.createElement('colgroup');
@@ -497,7 +537,21 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       cg.appendChild(colW('80px'));
       table.appendChild(cg);
       const thead = document.createElement('thead');
-      thead.innerHTML = '<tr><th class="col-grip" aria-label="Ordre"></th><th class="col-diff">Diff</th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-edit">Action</th></tr>';
+      function escAttr(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      }
+      thead.innerHTML =
+        '<tr><th class="col-grip" aria-label="' +
+        escAttr(UI.theadOrder) +
+        '"></th><th class="col-diff">' +
+        escAttr(UI.theadDiff) +
+        '</th><th class="col-key">' +
+        escAttr(UI.theadKey) +
+        '</th><th class="col-val">' +
+        escAttr(UI.theadValue) +
+        '</th><th class="col-edit">' +
+        escAttr(UI.theadAction) +
+        '</th></tr>';
       table.appendChild(thead);
       const tb = document.createElement('tbody');
 
@@ -508,7 +562,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         var gh = document.createElement('span');
         gh.className = 'grip-handle';
         gh.innerHTML = svgGrip;
-        gh.setAttribute('aria-label', 'Réorganiser');
+        gh.setAttribute('aria-label', UI.reorder);
         gh.dataset.dragKey = row.key;
         gh.draggable = !editing;
         tdGrip.appendChild(gh);
@@ -706,7 +760,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
             taDoc = document.createElement('textarea');
             taDoc.className = 'doc-ta-above';
             taDoc.value = row.documentation || '';
-            taDoc.setAttribute('aria-label', 'Documentation pour ' + row.key);
+            /* split/join: regex /\\{0\\}/g cannot be embedded here — the outer TS template strips backslashes */
+            taDoc.setAttribute('aria-label', UI.docFor.split('{0}').join(row.key));
             tdDocMerged.appendChild(taDoc);
           } else {
             var docDisp = document.createElement('div');
@@ -781,8 +836,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           var btnAdd = document.createElement('button');
           btnAdd.type = 'button';
           btnAdd.className = 'row-action';
-          btnAdd.setAttribute('aria-label', 'Ajouter au fichier de base');
-          btnAdd.setAttribute('title', 'Ajouter cette variable au fichier de base');
+          btnAdd.setAttribute('aria-label', UI.addToBaseAria);
+          btnAdd.setAttribute('title', UI.addToBaseTitle);
           btnAdd.innerHTML = svgPlus;
           btnAdd.addEventListener('click', function () {
             vscode.postMessage({
@@ -799,7 +854,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           var btnSave = document.createElement('button');
           btnSave.type = 'button';
           btnSave.className = 'row-action';
-          btnSave.setAttribute('aria-label', 'Enregistrer');
+          btnSave.setAttribute('aria-label', UI.saveAria);
           btnSave.innerHTML = svgSave;
           btnSave.addEventListener('click', function () {
             vscode.postMessage({
@@ -814,7 +869,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           var btnCancel = document.createElement('button');
           btnCancel.type = 'button';
           btnCancel.className = 'row-action';
-          btnCancel.setAttribute('aria-label', 'Annuler');
+          btnCancel.setAttribute('aria-label', UI.cancelAria);
           btnCancel.innerHTML = svgCancel;
           btnCancel.addEventListener('click', function () {
             window.__editingRowKey = null;
@@ -829,7 +884,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           var btnEditRow = document.createElement('button');
           btnEditRow.type = 'button';
           btnEditRow.className = 'btn-doc-edit';
-          btnEditRow.setAttribute('aria-label', 'Éditer');
+          btnEditRow.setAttribute('aria-label', UI.editAria);
           btnEditRow.innerHTML = svgEdit;
           btnEditRow.addEventListener('click', function (ev) {
             ev.preventDefault();
@@ -839,8 +894,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           var btnDelRow = document.createElement('button');
           btnDelRow.type = 'button';
           btnDelRow.className = 'row-action';
-          btnDelRow.setAttribute('aria-label', 'Supprimer du fichier de base');
-          btnDelRow.setAttribute('title', 'Supprimer cette variable du fichier de base');
+          btnDelRow.setAttribute('aria-label', UI.deleteFromBaseAria);
+          btnDelRow.setAttribute('title', UI.deleteFromBaseTitle);
           btnDelRow.innerHTML = svgMinus;
           btnDelRow.addEventListener('click', function (ev) {
             ev.stopPropagation();
@@ -861,8 +916,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
             delBtn.setAttribute('data-delete-phase', 'confirm');
             delBtn.innerHTML = svgTrash2;
             delBtn.classList.add('row-action-delete-armed');
-            delBtn.setAttribute('aria-label', 'Confirmer la suppression');
-            delBtn.setAttribute('title', 'Cliquer à nouveau pour supprimer du fichier de base');
+            delBtn.setAttribute('aria-label', UI.confirmDeleteAria);
+            delBtn.setAttribute('title', UI.confirmDeleteTitle);
           });
           actRow.appendChild(btnEditRow);
           actRow.appendChild(btnDelRow);
@@ -889,9 +944,9 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       inpNewKey.type = 'text';
       inpNewKey.className = 'inp-new';
       inpNewKey.id = 'inp-new-key';
-      inpNewKey.placeholder = 'Nouvelle clé';
+      inpNewKey.placeholder = UI.newKeyPh;
       inpNewKey.setAttribute('autocomplete', 'off');
-      inpNewKey.setAttribute('title', 'Appuyez sur Entrée pour ajouter la variable au fichier de base');
+      inpNewKey.setAttribute('title', UI.newRowEnterTitle);
       tdKeyF.appendChild(inpNewKey);
       const tdValF = document.createElement('td');
       tdValF.className = 'col-val';
@@ -899,9 +954,9 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       inpNewVal.type = 'text';
       inpNewVal.className = 'inp-new';
       inpNewVal.id = 'inp-new-val';
-      inpNewVal.placeholder = 'Valeur';
+      inpNewVal.placeholder = UI.valuePh;
       inpNewVal.setAttribute('autocomplete', 'off');
-      inpNewVal.setAttribute('title', 'Appuyez sur Entrée pour ajouter la variable au fichier de base');
+      inpNewVal.setAttribute('title', UI.newRowEnterTitle);
       tdValF.appendChild(inpNewVal);
       const tdEditF = document.createElement('td');
       tdEditF.className = 'col-edit';

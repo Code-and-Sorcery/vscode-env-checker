@@ -1,7 +1,7 @@
 {
   "name": "vscode-env-checker",
-  "displayName": "Env Checker",
-  "description": "Compare and inspect .env files: tables, documentation from comments, and missing variables across variants.",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
   "version": "0.1.0",
   "publisher": "local",
   "engines": {
@@ -23,7 +23,7 @@
     "customEditors": [
       {
         "viewType": "envChecker.editor",
-        "displayName": "Env Checker",
+        "displayName": "%view.envChecker.displayName%",
         "selector": [
           {
             "filenamePattern": "**/.env"
@@ -61,7 +61,7 @@
       }
     ],
     "configuration": {
-      "title": "Env Checker",
+      "title": "%config.title%",
       "properties": {
         "envChecker.relatedFileNames": {
           "type": "array",
@@ -83,26 +83,26 @@
             ".env.production.local",
             ".env.test.local"
           ],
-          "description": "Base file names (same folder) to consider as related env files for comparison, in addition to the active file."
+          "description": "%config.relatedFileNames.description%"
         }
       }
     },
     "commands": [
       {
         "command": "envChecker.openFormattedView",
-        "title": "Env Checker: Open formatted view"
+        "title": "%command.openFormattedView.title%"
       },
       {
         "command": "envChecker.compareEnvFiles",
-        "title": "Env Checker: Compare env files…"
+        "title": "%command.compareEnvFiles.title%"
       },
       {
         "command": "envChecker.compareWithExample",
-        "title": "Env Checker: Compare with .env.example (and related)"
+        "title": "%command.compareWithExample.title%"
       },
       {
         "command": "envChecker.reopenAsTextEditor",
-        "title": "Env Checker: Reopen as text editor"
+        "title": "%command.reopenAsTextEditor.title%"
       }
     ],
     "menus": {

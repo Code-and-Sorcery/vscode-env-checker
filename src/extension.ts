@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CompareSession } from './compareSession';
+import { t } from './nls';
 import { ENV_CUSTOM_EDITOR_VIEW_TYPE, registerEnvCustomEditor } from './envCustomEditor';
 import { labelForUri } from './envPayload';
 
@@ -8,7 +9,7 @@ async function openPanel(_context: vscode.ExtensionContext, primaryUri: vscode.U
   const dirUri = vscode.Uri.file(path.dirname(primaryUri.fsPath));
   const panel = vscode.window.createWebviewPanel(
     'envChecker',
-    `Env Checker — ${labelForUri(primaryUri)}`,
+    t('Env Checker — {0}', labelForUri(primaryUri)),
     vscode.ViewColumn.Beside,
     { enableScripts: true, retainContextWhenHidden: true },
   );
@@ -63,16 +64,18 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('envChecker.openFormattedView', async () => {
       const uri = await resolveEnvFileUriForCommands();
       if (!uri || uri.scheme !== 'file') {
-        vscode.window.showWarningMessage('Ouvrez un fichier .env (sur disque) pour utiliser Env Checker.');
+        vscode.window.showWarningMessage(t('Open a .env file (on disk) to use Env Checker.'));
         return;
       }
       if (!isLikelyEnvPath(uri.fsPath)) {
+        const yes = t('Yes');
+        const no = t('No');
         const go = await vscode.window.showWarningMessage(
-          'Le fichier ne ressemble pas à un .env. Continuer quand même ?',
-          'Oui',
-          'Non',
+          t('This file does not look like a .env. Continue anyway?'),
+          yes,
+          no,
         );
-        if (go !== 'Oui') {
+        if (go !== yes) {
           return;
         }
       }
@@ -84,7 +87,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('envChecker.compareWithExample', async () => {
       const uri = await resolveEnvFileUriForCommands();
       if (!uri) {
-        vscode.window.showWarningMessage('Ouvrez un fichier .env pour comparer.');
+        vscode.window.showWarningMessage(t('Open a .env file to compare.'));
         return;
       }
       await openPanel(context, uri);
@@ -95,8 +98,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('envChecker.compareEnvFiles', async () => {
       const picks = await vscode.window.showOpenDialog({
         canSelectMany: true,
-        openLabel: 'Comparer',
-        filters: { 'Tous les fichiers': ['*'] },
+        openLabel: t('Compare'),
+        filters: { [t('All Files')]: ['*'] },
       });
       if (!picks?.length) {
         return;
@@ -111,7 +114,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const input = tab?.input;
       if (!input || !(input instanceof vscode.TabInputCustom) || input.viewType !== ENV_CUSTOM_EDITOR_VIEW_TYPE) {
         vscode.window.showInformationMessage(
-          'Activez d’abord un onglet .env ouvert avec Env Checker (éditeur personnalisé).',
+          t('Activate an .env tab opened with Env Checker (custom editor) first.'),
         );
         return;
       }

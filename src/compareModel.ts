@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { t } from './nls';
 import { parseEnvFile } from './parser';
 import { labelForUri } from './envPayload';
 import { listEnvFilesInDirectory } from './relatedFiles';
@@ -23,6 +24,10 @@ export interface CompareViewPayload {
   comparePath: string | null;
   rows: CompareRow[];
   noEnvFiles: boolean;
+  /** Localized line under the file selectors. */
+  hintText: string;
+  /** Shown in the table area when there is no base file selected. */
+  emptyStateText?: string;
 }
 
 function pathByBasename(uris: vscode.Uri[], baseName: string): string | undefined {
@@ -127,6 +132,7 @@ export async function buildComparePayload(
       comparePath: null,
       rows: [],
       noEnvFiles: true,
+      hintText: t('No .env files in this folder.'),
     };
   }
 
@@ -138,6 +144,8 @@ export async function buildComparePayload(
       comparePath: null,
       rows: [],
       noEnvFiles: false,
+      hintText: t('Choose a base file to show the table.'),
+      emptyStateText: t('No table: no base file selected.'),
     };
   }
 
@@ -148,11 +156,17 @@ export async function buildComparePayload(
   const compareText = compareOk ? await readEnvContent(compareOk) : null;
   const rows = buildRows(baseText, compareText);
 
+  const compareLabel = compareOk ? envFiles.find((f) => f.path === compareOk)?.label ?? '' : '';
+  const hintText = compareOk
+    ? t('Comparison by key with "{0}".', compareLabel)
+    : t('No comparison file: showing base file keys only.');
+
   return {
     envFiles,
     basePath,
     comparePath: compareOk,
     rows,
     noEnvFiles: false,
+    hintText,
   };
 }

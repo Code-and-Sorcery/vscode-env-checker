@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { t } from './nls';
 import {
   buildComparePayload,
   defaultBaseAndCompare,
@@ -176,18 +177,20 @@ export class CompareSession {
         return;
       }
       if (!key.trim()) {
-        vscode.window.showWarningMessage('Saisissez une clé pour ajouter une variable.');
+        vscode.window.showWarningMessage(t('Enter a key to add a variable.'));
         return;
       }
       if (!isValidEnvKey(key)) {
         vscode.window.showWarningMessage(
-          'Clé invalide : utilisez des lettres, des chiffres et des underscores (ne commence pas par un chiffre).',
+          t('Invalid key: use letters, digits, and underscores (must not start with a digit).'),
         );
         return;
       }
       const existing = keysSet(parseEnvFile(await readEnvContent(baseFs)));
       if (existing.has(key.trim())) {
-        vscode.window.showWarningMessage(`La clé « ${key.trim()} » existe déjà dans le fichier de base.`);
+        vscode.window.showWarningMessage(
+          t('The key "{0}" already exists in the base file.', key.trim()),
+        );
         return;
       }
       try {
@@ -195,7 +198,7 @@ export class CompareSession {
         await this.push();
       } catch (e) {
         if (e instanceof Error && e.message === 'INVALID_KEY') {
-          vscode.window.showWarningMessage('Clé invalide.');
+          vscode.window.showWarningMessage(t('Invalid key.'));
         }
       }
       return;
@@ -217,10 +220,10 @@ export class CompareSession {
         const code = e instanceof Error ? e.message : '';
         if (code === 'DUPLICATE_KEYS_IN_FILE') {
           vscode.window.showWarningMessage(
-            'Réordonnancement impossible : le fichier contient des clés en double.',
+            t('Reorder failed: the file contains duplicate keys.'),
           );
         } else {
-          vscode.window.showWarningMessage('Impossible de réordonner les variables dans le fichier .env.');
+          vscode.window.showWarningMessage(t('Cannot reorder variables in the .env file.'));
         }
       }
       return;
@@ -241,12 +244,14 @@ export class CompareSession {
         const err = e instanceof Error ? e.message : '';
         if (err === 'INVALID_KEY') {
           vscode.window.showWarningMessage(
-            'Clé invalide : utilisez des lettres, des chiffres et des underscores (ne commence pas par un chiffre).',
+            t('Invalid key: use letters, digits, and underscores (must not start with a digit).'),
           );
         } else if (err === 'DUPLICATE_KEY') {
-          vscode.window.showWarningMessage(`La clé « ${key.trim()} » existe déjà dans le fichier de base.`);
+          vscode.window.showWarningMessage(
+            t('The key "{0}" already exists in the base file.', key.trim()),
+          );
         } else if (err === 'KEY_NOT_FOUND') {
-          vscode.window.showWarningMessage('Variable introuvable dans le fichier de base.');
+          vscode.window.showWarningMessage(t('Variable not found in the base file.'));
         }
       }
     }
