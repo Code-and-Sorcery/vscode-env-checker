@@ -90,11 +90,19 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     tr.env-doc-above.row-neutral td.col-doc-above { vertical-align: top; }
     tr.env-data-row.row-neutral td:not(.col-diff) { background: transparent; }
     tr.env-data-row.row-neutral .diff-inner { background: transparent; }
-    th.col-key, td.col-key { width: 26%; font-family: var(--mono); font-size: 12px; }
-    th.col-val, td.col-val { width: 38%; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
+    /* Clé + valeur : pas de % fixe — elles absorbent l’espace restant (voir colgroup). */
+    th.col-key, td.col-key,
+    th.col-val, td.col-val {
+      width: auto;
+      min-width: 0;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    th.col-val, td.col-val { white-space: pre-wrap; }
     th.col-edit, td.col-edit {
-      width: 30px;
-      max-width: 76px;
+      width: 76px;
+      max-width: 96px;
+      min-width: 56px;
       text-align: center;
       vertical-align: middle;
       padding: 2px 4px;
@@ -331,6 +339,20 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         : 'Aucun fichier de comparaison : affichage des seules clés du fichier de base.';
 
       const table = document.createElement('table');
+      const cg = document.createElement('colgroup');
+      const colW = function (w) {
+        const c = document.createElement('col');
+        if (w) {
+          c.style.width = w;
+        }
+        return c;
+      };
+      cg.appendChild(colW('30px'));
+      cg.appendChild(colW('44px'));
+      cg.appendChild(colW(null));
+      cg.appendChild(colW(null));
+      cg.appendChild(colW('80px'));
+      table.appendChild(cg);
       const thead = document.createElement('thead');
       thead.innerHTML = '<tr><th class="col-grip" aria-label="Ordre"></th><th class="col-diff">Diff</th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-edit">Action</th></tr>';
       table.appendChild(thead);
