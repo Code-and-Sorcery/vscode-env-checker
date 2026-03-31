@@ -1,0 +1,146 @@
+{
+  "name": "vscode-env-checker",
+  "displayName": "Env Checker",
+  "description": "Compare and inspect .env files: tables, documentation from comments, and missing variables across variants.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCustomEditor:envChecker.editor",
+    "onLanguage:dotenv",
+    "onCommand:envChecker.openFormattedView",
+    "onCommand:envChecker.compareEnvFiles",
+    "onCommand:envChecker.compareWithExample",
+    "onCommand:envChecker.reopenAsTextEditor"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "envChecker.editor",
+        "displayName": "Env Checker",
+        "selector": [
+          {
+            "filenamePattern": "**/.env"
+          },
+          {
+            "filenamePattern": "**/.env.*"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "languages": [
+      {
+        "id": "dotenv",
+        "aliases": [
+          "Dotenv",
+          "env"
+        ],
+        "extensions": [
+          ".env",
+          ".env.local",
+          ".env.development",
+          ".env.production",
+          ".env.test",
+          ".env.example",
+          ".env.sample",
+          ".env.template",
+          ".env.staging",
+          ".env.ci",
+          ".env.development.local",
+          ".env.production.local",
+          ".env.test.local"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configuration": {
+      "title": "Env Checker",
+      "properties": {
+        "envChecker.relatedFileNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".env.example",
+            ".env.sample",
+            ".env.template",
+            ".env.test",
+            ".env.testing",
+            ".env.local",
+            ".env.development",
+            ".env.production",
+            ".env.staging",
+            ".env.ci",
+            ".env.development.local",
+            ".env.production.local",
+            ".env.test.local"
+          ],
+          "description": "Base file names (same folder) to consider as related env files for comparison, in addition to the active file."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "envChecker.openFormattedView",
+        "title": "Env Checker: Open formatted view"
+      },
+      {
+        "command": "envChecker.compareEnvFiles",
+        "title": "Env Checker: Compare env files…"
+      },
+      {
+        "command": "envChecker.compareWithExample",
+        "title": "Env Checker: Compare with .env.example (and related)"
+      },
+      {
+        "command": "envChecker.reopenAsTextEditor",
+        "title": "Env Checker: Reopen as text editor"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "envChecker.openFormattedView",
+          "when": "resourceScheme == file && resourceFilename =~ /^\\.env(\\.|$)/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "envChecker.compareWithExample",
+          "when": "resourceScheme == file && resourceFilename =~ /^\\.env(\\.|$)/",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "envChecker.openFormattedView",
+          "when": "resourceScheme == file && resourceFilename =~ /^\\.env(\\.|$)/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "envChecker.compareWithExample",
+          "when": "resourceScheme == file && resourceFilename =~ /^\\.env(\\.|$)/",
+          "group": "navigation@2"
+        }
+      ]
+    }
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  }
+}
