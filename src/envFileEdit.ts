@@ -47,6 +47,15 @@ function formatCommentLines(text: string): string[] {
   });
 }
 
+/** Lignes `# …` + ligne vide à insérer au-dessus d’une assignation (même logique que replaceDocumentationAboveKey). */
+function commentBlockLinesAboveKey(commentText: string): string[] {
+  const formatted = formatCommentLines(commentText);
+  while (formatted.length > 0 && formatted[formatted.length - 1] === '') {
+    formatted.pop();
+  }
+  return formatted.length > 0 ? [...formatted, ''] : [];
+}
+
 /**
  * Remplace les lignes de commentaire / vides situées au-dessus de la première occurrence de `key`
  * par le texte donné (une ligne devient une ligne `# …` si besoin).
@@ -245,11 +254,13 @@ export async function addKeyFromCompareToBase(
 ): Promise<void> {
   const compareText = await readEnvContent(compareFsPath);
   const entry = parseEnvFile(compareText).find((e) => e.key === key);
-  const line = entry ? formatEnvAssignment(key, entry.value) : `${key}=`;
+  const assignment = entry ? formatEnvAssignment(key, entry.value) : `${key}=`;
+  const docLines = entry?.documentation ? commentBlockLinesAboveKey(entry.documentation) : [];
+  const block = docLines.length > 0 ? [...docLines, assignment].join('\n') : assignment;
 
   const baseUri = vscode.Uri.file(baseFsPath);
   const baseText = await readEnvContent(baseFsPath);
   const normalized =
-    baseText.length === 0 ? `${line}\n` : `${baseText.replace(/\s*$/, '')}\n${line}\n`;
+    baseText.length === 0 ? `${block}\n` : `${baseText.replace(/\s*$/, '')}\n${block}\n`;
   await writeEnvFileContent(baseUri, normalized);
 }

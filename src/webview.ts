@@ -92,7 +92,15 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     tr.env-data-row.row-neutral .diff-inner { background: transparent; }
     th.col-key, td.col-key { width: 26%; font-family: var(--mono); font-size: 12px; }
     th.col-val, td.col-val { width: 38%; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; }
-    th.col-edit, td.col-edit { width: 100px; text-align: center; vertical-align: middle; padding: 4px 6px; }
+    th.col-edit, td.col-edit {
+      width: 30px;
+      max-width: 76px;
+      text-align: center;
+      vertical-align: middle;
+      padding: 2px 4px;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
     td.col-edit.rowspan-edit { vertical-align: middle; }
     tr.env-doc-above.row-both td.col-edit.rowspan-edit { background: var(--row-both); }
     tr.env-doc-above.row-baseOnly td.col-edit.rowspan-edit { background: var(--row-base); }
@@ -119,7 +127,20 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       background: var(--btn-bg); color: var(--btn-fg); line-height: 0;
     }
     button.btn-doc-edit:hover { filter: brightness(1.08); }
-    .row-edit-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+    .row-edit-actions {
+      display: inline-flex;
+      flex-wrap: nowrap;
+      gap: 3px;
+      justify-content: center;
+      align-items: center;
+      max-width: 100%;
+    }
+    .col-edit button.row-action,
+    .col-edit button.btn-doc-edit {
+      padding: 3px;
+      min-width: 0;
+      flex-shrink: 0;
+    }
     button.row-action {
       display: inline-flex;
       align-items: center;
@@ -133,6 +154,10 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       line-height: 0;
     }
     button.row-action:hover { filter: brightness(1.1); }
+    button.row-action.row-action-delete-armed {
+      border-color: var(--vscode-inputValidation-errorBorder, #c00);
+      color: var(--vscode-errorForeground, #f44);
+    }
     .empty { color: var(--muted); padding: 16px 0; font-size: 13px; }
     tfoot.add-foot td { padding: 6px 8px; vertical-align: middle; border: 1px solid var(--border); }
     tfoot.add-foot td.col-diff { padding: 0; }
@@ -173,6 +198,42 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     const svgSave = ${JSON.stringify(webviewLucideHtml.save)};
     const svgCancel = ${JSON.stringify(webviewLucideHtml.x)};
     const svgGrip = ${JSON.stringify(webviewLucideHtml.gripVertical)};
+    const svgTrash2 = ${JSON.stringify(webviewLucideHtml.trash2)};
+    window.__armedDeleteBtn = null;
+    function resetDeleteConfirmButton() {
+      var b = window.__armedDeleteBtn;
+      if (!b) {
+        return;
+      }
+      b.innerHTML = svgMinus;
+      b.removeAttribute('data-delete-phase');
+      b.setAttribute('aria-label', 'Supprimer du fichier de base');
+      b.setAttribute('title', 'Supprimer cette variable du fichier de base');
+      b.classList.remove('row-action-delete-armed');
+      window.__armedDeleteBtn = null;
+    }
+    if (!window.__envCheckerDeleteOutsideBound) {
+      window.__envCheckerDeleteOutsideBound = true;
+      document.addEventListener(
+        'click',
+        function (ev) {
+          var b = window.__armedDeleteBtn;
+          if (!b) {
+            return;
+          }
+          if (!document.body.contains(b)) {
+            window.__armedDeleteBtn = null;
+            return;
+          }
+          var t = ev.target;
+          if (b === t || b.contains(t)) {
+            return;
+          }
+          resetDeleteConfirmButton();
+        },
+        true,
+      );
+    }
     function fillSelect(select, files, selectedPath, includeEmpty) {
       select.innerHTML = '';
       if (includeEmpty) {
@@ -226,6 +287,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
 
     function render(payload) {
       window.__lastPayload = payload;
+      resetDeleteConfirmButton();
 
       if (payload.noEnvFiles) {
         hint.textContent = 'Aucun fichier .env dans ce dossier.';
@@ -270,7 +332,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
-      thead.innerHTML = '<tr><th class="col-grip" aria-label="Ordre"></th><th class="col-diff">Diff</th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-edit"></th></tr>';
+      thead.innerHTML = '<tr><th class="col-grip" aria-label="Ordre"></th><th class="col-diff">Diff</th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-edit">Action</th></tr>';
       table.appendChild(thead);
       const tb = document.createElement('tbody');
 
@@ -480,50 +542,96 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           tdEdit = document.createElement('td');
           tdEdit.className = 'col-edit';
         }
-        if (row.status !== 'compareOnly') {
-          if (editing && taDoc && inpKey && inpVal) {
-            var act = document.createElement('div');
-            act.className = 'row-edit-actions';
-            var btnSave = document.createElement('button');
-            btnSave.type = 'button';
-            btnSave.className = 'row-action';
-            btnSave.setAttribute('aria-label', 'Enregistrer');
-            btnSave.innerHTML = svgSave;
-            btnSave.addEventListener('click', function () {
+        if (row.status === 'compareOnly' && payload.comparePath) {
+          var btnAdd = document.createElement('button');
+          btnAdd.type = 'button';
+          btnAdd.className = 'row-action';
+          btnAdd.setAttribute('aria-label', 'Ajouter au fichier de base');
+          btnAdd.setAttribute('title', 'Ajouter cette variable au fichier de base');
+          btnAdd.innerHTML = svgPlus;
+          btnAdd.addEventListener('click', function () {
+            vscode.postMessage({
+              type: 'addKey',
+              basePath: payload.basePath,
+              comparePath: payload.comparePath,
+              key: row.key
+            });
+          });
+          tdEdit.appendChild(btnAdd);
+        } else if (editing && taDoc && inpKey && inpVal) {
+          var act = document.createElement('div');
+          act.className = 'row-edit-actions';
+          var btnSave = document.createElement('button');
+          btnSave.type = 'button';
+          btnSave.className = 'row-action';
+          btnSave.setAttribute('aria-label', 'Enregistrer');
+          btnSave.innerHTML = svgSave;
+          btnSave.addEventListener('click', function () {
+            vscode.postMessage({
+              type: 'saveRow',
+              basePath: payload.basePath,
+              originalKey: row.key,
+              key: inpKey.value.trim(),
+              value: inpVal.value,
+              comment: taDoc.value
+            });
+          });
+          var btnCancel = document.createElement('button');
+          btnCancel.type = 'button';
+          btnCancel.className = 'row-action';
+          btnCancel.setAttribute('aria-label', 'Annuler');
+          btnCancel.innerHTML = svgCancel;
+          btnCancel.addEventListener('click', function () {
+            window.__editingRowKey = null;
+            render(window.__lastPayload);
+          });
+          act.appendChild(btnSave);
+          act.appendChild(btnCancel);
+          tdEdit.appendChild(act);
+        } else if (!editing && row.status !== 'compareOnly') {
+          var actRow = document.createElement('div');
+          actRow.className = 'row-edit-actions';
+          var btnEditRow = document.createElement('button');
+          btnEditRow.type = 'button';
+          btnEditRow.className = 'btn-doc-edit';
+          btnEditRow.setAttribute('aria-label', 'Éditer');
+          btnEditRow.innerHTML = svgEdit;
+          btnEditRow.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            window.__editingRowKey = row.key;
+            render(window.__lastPayload);
+          });
+          var btnDelRow = document.createElement('button');
+          btnDelRow.type = 'button';
+          btnDelRow.className = 'row-action';
+          btnDelRow.setAttribute('aria-label', 'Supprimer du fichier de base');
+          btnDelRow.setAttribute('title', 'Supprimer cette variable du fichier de base');
+          btnDelRow.innerHTML = svgMinus;
+          btnDelRow.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            var delBtn = ev.currentTarget;
+            if (delBtn.getAttribute('data-delete-phase') === 'confirm') {
               vscode.postMessage({
-                type: 'saveRow',
+                type: 'deleteKey',
                 basePath: payload.basePath,
-                originalKey: row.key,
-                key: inpKey.value.trim(),
-                value: inpVal.value,
-                comment: taDoc.value
+                key: row.key
               });
-            });
-            var btnCancel = document.createElement('button');
-            btnCancel.type = 'button';
-            btnCancel.className = 'row-action';
-            btnCancel.setAttribute('aria-label', 'Annuler');
-            btnCancel.innerHTML = svgCancel;
-            btnCancel.addEventListener('click', function () {
-              window.__editingRowKey = null;
-              render(window.__lastPayload);
-            });
-            act.appendChild(btnSave);
-            act.appendChild(btnCancel);
-            tdEdit.appendChild(act);
-          } else if (!editing) {
-            var btnEdit = document.createElement('button');
-            btnEdit.type = 'button';
-            btnEdit.className = 'btn-doc-edit';
-            btnEdit.setAttribute('aria-label', 'Éditer');
-            btnEdit.innerHTML = svgEdit;
-            btnEdit.addEventListener('click', function (ev) {
-              ev.preventDefault();
-              window.__editingRowKey = row.key;
-              render(window.__lastPayload);
-            });
-            tdEdit.appendChild(btnEdit);
-          }
+              resetDeleteConfirmButton();
+              return;
+            }
+            if (window.__armedDeleteBtn && window.__armedDeleteBtn !== delBtn) {
+              resetDeleteConfirmButton();
+            }
+            window.__armedDeleteBtn = delBtn;
+            delBtn.setAttribute('data-delete-phase', 'confirm');
+            delBtn.innerHTML = svgTrash2;
+            delBtn.classList.add('row-action-delete-armed');
+            delBtn.setAttribute('aria-label', 'Confirmer la suppression');
+            delBtn.setAttribute('title', 'Cliquer à nouveau pour supprimer du fichier de base');
+          });
+          actRow.appendChild(btnEditRow);
+          actRow.appendChild(btnDelRow);
+          tdEdit.appendChild(actRow);
         }
         if (!docRowVisible) {
           trData.appendChild(tdEdit);

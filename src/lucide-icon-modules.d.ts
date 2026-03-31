@@ -27,3 +27,7 @@ declare module 'lucide/dist/esm/icons/grip-vertical.js' {
   const GripVertical: import('lucide').IconNode;
   export default GripVertical;
 }
+declare module 'lucide/dist/esm/icons/trash-2.js' {
+  const Trash2: import('lucide').IconNode;
+  export default Trash2;
+}
