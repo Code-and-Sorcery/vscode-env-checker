@@ -62,8 +62,23 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     }
     .grip-handle:active { cursor: grabbing; }
     .grip-handle[draggable="false"] { cursor: default; opacity: 0.35; }
-    /* Indicateur « insérer avant cette variable » : barre sur la 1re ligne du bloc (doc ou données). */
-    tr.drag-over-key > td:first-child { box-shadow: inset 0 3px 0 var(--vscode-focusBorder, #007fd4); }
+    /* Avant cette variable : barre de prévisualisation sur toute la largeur du tableau. */
+    tr.drag-over-key > td {
+      box-shadow: inset 0 3px 0 var(--vscode-focusBorder, #007fd4);
+    }
+    /* Après cette variable : bas de la ligne clé/valeur (toutes les cellules de ce tr). */
+    tr.drag-over-key-after > td {
+      box-shadow: inset 0 -3px 0 var(--vscode-focusBorder, #007fd4);
+    }
+    /*
+     * Bloc doc + ligne données : grip / diff / action sont sur la 1re tr (rowspan 2) ;
+     * la cellule doc ne va pas jusqu’en bas — on trace la barre sur 1, 2 et 4e td seulement.
+     */
+    tr.drag-over-key-after-doc > td:nth-child(1),
+    tr.drag-over-key-after-doc > td:nth-child(2),
+    tr.drag-over-key-after-doc > td:nth-child(4) {
+      box-shadow: inset 0 -3px 0 var(--vscode-focusBorder, #007fd4);
+    }
     th.col-diff, td.col-diff { width: 44px; padding: 0; text-align: center; vertical-align: middle; }
     th.col-diff { padding: 6px 4px; }
     tbody td.col-diff { height: 1px; }
@@ -371,17 +386,20 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         tdGrip.appendChild(gh);
       }
 
-      function setupDragReorder(tableBody, pl) {
+      function setupDragReorder(tableBody, pl, tfootAddTr) {
         var baseKeys = pl.rows
           .filter(function (r) { return r.status !== 'compareOnly'; })
           .map(function (r) { return r.key; });
         function clearDragOver() {
-          tableBody.querySelectorAll('tr.drag-over-key').forEach(function (tr) {
-            tr.classList.remove('drag-over-key');
+          tableBody.querySelectorAll('tr.drag-over-key, tr.drag-over-key-after, tr.drag-over-key-after-doc').forEach(function (tr) {
+            tr.classList.remove('drag-over-key', 'drag-over-key-after', 'drag-over-key-after-doc');
           });
         }
-        /** Première ligne du bloc variable (ligne doc si présente, sinon ligne clé/valeur). */
-        function highlightInsertBeforeKey(key) {
+        /**
+         * insertAfter : uniquement sur env-data-row (moitié basse) → après ce bloc variable ;
+         * sinon → avant ce bloc (ligne doc si présente, sinon données).
+         */
+        function highlightReorder(key, insertAfter) {
           clearDragOver();
           var docTr = null;
           var dataTr = null;
@@ -396,11 +414,38 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
               dataTr = tr;
             }
           });
-          if (docTr) {
+          if (insertAfter && dataTr) {
+            dataTr.classList.add('drag-over-key-after');
+            if (docTr) {
+              docTr.classList.add('drag-over-key-after-doc');
+            }
+          } else if (docTr) {
             docTr.classList.add('drag-over-key');
           } else if (dataTr) {
             dataTr.classList.add('drag-over-key');
           }
+        }
+        /** Bas ~60 % de la ligne clé/valeur = insérer après (cible plus large que 50 %). */
+        function insertAfterFromEvent(tr, e) {
+          if (!tr.classList.contains('env-data-row')) {
+            return false;
+          }
+          var rect = tr.getBoundingClientRect();
+          return e.clientY >= rect.top + rect.height * 0.4;
+        }
+        function getLastReorderableBaseKey() {
+          var rows = tableBody.querySelectorAll('tr.env-data-row[data-reorder-target="1"]');
+          if (!rows.length) {
+            return null;
+          }
+          return rows[rows.length - 1].dataset.envKey || null;
+        }
+        function postReorder(order) {
+          vscode.postMessage({
+            type: 'reorderKeys',
+            basePath: pl.basePath,
+            orderedKeys: order
+          });
         }
         tableBody.querySelectorAll('.grip-handle[draggable="true"]').forEach(function (h) {
           h.addEventListener('dragstart', function (e) {
@@ -418,14 +463,18 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
             if (!k) {
               return;
             }
-            highlightInsertBeforeKey(k);
+            highlightReorder(k, insertAfterFromEvent(tr, e));
           });
           tr.addEventListener('drop', function (e) {
             e.preventDefault();
             clearDragOver();
             var fromKey = e.dataTransfer.getData('text/plain');
             var toKey = tr.dataset.envKey || '';
-            if (!fromKey || !toKey || fromKey === toKey) {
+            if (!fromKey || !toKey) {
+              return;
+            }
+            var insertAfter = insertAfterFromEvent(tr, e);
+            if (fromKey === toKey) {
               return;
             }
             var order = baseKeys.slice();
@@ -436,14 +485,49 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
             }
             order.splice(fi, 1);
             var newTi = order.indexOf(toKey);
-            order.splice(newTi, 0, fromKey);
-            vscode.postMessage({
-              type: 'reorderKeys',
-              basePath: pl.basePath,
-              orderedKeys: order
-            });
+            if (insertAfter) {
+              order.splice(newTi + 1, 0, fromKey);
+            } else {
+              order.splice(newTi, 0, fromKey);
+            }
+            postReorder(order);
           });
         });
+        if (tfootAddTr) {
+          tfootAddTr.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            var lk = getLastReorderableBaseKey();
+            if (lk) {
+              highlightReorder(lk, true);
+            }
+          });
+          tfootAddTr.addEventListener('drop', function (e) {
+            e.preventDefault();
+            clearDragOver();
+            var fromKey = e.dataTransfer.getData('text/plain');
+            var lastKey = getLastReorderableBaseKey();
+            if (!fromKey || !lastKey) {
+              return;
+            }
+            if (fromKey === lastKey) {
+              return;
+            }
+            var order = baseKeys.slice();
+            var fi = order.indexOf(fromKey);
+            var li = order.indexOf(lastKey);
+            if (fi < 0 || li < 0) {
+              return;
+            }
+            order.splice(fi, 1);
+            var newLi = order.indexOf(lastKey);
+            if (newLi < 0) {
+              return;
+            }
+            order.splice(newLi + 1, 0, fromKey);
+            postReorder(order);
+          });
+        }
       }
 
       function setDiffIcon(diffInner, row) {
@@ -662,7 +746,6 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         tb.appendChild(trData);
       }
       table.appendChild(tb);
-      setupDragReorder(tb, payload);
 
       const foot = document.createElement('tfoot');
       foot.className = 'add-foot';
@@ -700,6 +783,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       trAdd.appendChild(tdEditF);
       foot.appendChild(trAdd);
       table.appendChild(foot);
+
+      setupDragReorder(tb, payload, trAdd);
 
       function submitNewRow() {
         var k = inpNewKey.value.trim();
