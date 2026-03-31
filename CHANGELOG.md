@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-31
+
+### Fixed
+
+- GitHub Actions publish workflow: single pnpm version source (`packageManager` in `package.json`).
+
 ## [0.1.0] - 2026-03-31
 
 ### Build
@@ -26,5 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dotenv language contribution for common `.env*` extensions
 - French UI strings via `package.nls.fr.json`
 
-[Unreleased]: https://github.com/Code-and-Sorcery/vscode-env-checker/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Code-and-Sorcery/vscode-env-checker/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Code-and-Sorcery/vscode-env-checker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Code-and-Sorcery/vscode-env-checker/releases/tag/v0.1.0
