@@ -44,6 +44,24 @@ export async function deleteKeyFromEnvFile(baseFsPath: string, key: string): Pro
   await writeEnvFileContent(uri, next);
 }
 
+export function isValidEnvKey(key: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(key.trim());
+}
+
+/** Ajoute une ligne KEY=value à la fin du fichier de base (fichier ouvert ou disque). */
+export async function appendManualEntryToBase(baseFsPath: string, key: string, value: string): Promise<void> {
+  const k = key.trim();
+  if (!isValidEnvKey(k)) {
+    throw new Error('INVALID_KEY');
+  }
+  const baseUri = vscode.Uri.file(baseFsPath);
+  const baseText = await readEnvContent(baseFsPath);
+  const line = formatEnvAssignment(k, value);
+  const normalized =
+    baseText.length === 0 ? `${line}\n` : `${baseText.replace(/\s*$/, '')}\n${line}\n`;
+  await writeEnvFileContent(baseUri, normalized);
+}
+
 export async function addKeyFromCompareToBase(
   baseFsPath: string,
   compareFsPath: string,

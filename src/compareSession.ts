@@ -3,9 +3,15 @@ import {
   buildComparePayload,
   defaultBaseAndCompare,
   loadEnvFileOptions,
-  type CompareViewPayload,
+  readEnvContent,
 } from './compareModel';
-import { addKeyFromCompareToBase, deleteKeyFromEnvFile } from './envFileEdit';
+import { parseEnvFile, keysSet } from './parser';
+import {
+  addKeyFromCompareToBase,
+  appendManualEntryToBase,
+  deleteKeyFromEnvFile,
+  isValidEnvKey,
+} from './envFileEdit';
 import { getEnvCheckerWebviewHtml, postComparePayloadToWebview } from './webview';
 
 export interface CompareSessionOptions {
@@ -134,6 +140,38 @@ export class CompareSession {
       if (baseFs && compareFs && key) {
         await addKeyFromCompareToBase(baseFs, compareFs, key);
         await this.push();
+      }
+      return;
+    }
+    if (type === 'addManualEntry') {
+      const baseFs = msg.basePath as string;
+      const key = typeof msg.key === 'string' ? msg.key : '';
+      const value = typeof msg.value === 'string' ? msg.value : '';
+      if (!baseFs) {
+        return;
+      }
+      if (!key.trim()) {
+        vscode.window.showWarningMessage('Saisissez une clé pour ajouter une variable.');
+        return;
+      }
+      if (!isValidEnvKey(key)) {
+        vscode.window.showWarningMessage(
+          'Clé invalide : utilisez des lettres, des chiffres et des underscores (ne commence pas par un chiffre).',
+        );
+        return;
+      }
+      const existing = keysSet(parseEnvFile(await readEnvContent(baseFs)));
+      if (existing.has(key.trim())) {
+        vscode.window.showWarningMessage(`La clé « ${key.trim()} » existe déjà dans le fichier de base.`);
+        return;
+      }
+      try {
+        await appendManualEntryToBase(baseFs, key, value);
+        await this.push();
+      } catch (e) {
+        if (e instanceof Error && e.message === 'INVALID_KEY') {
+          vscode.window.showWarningMessage('Clé invalide.');
+        }
       }
     }
   }

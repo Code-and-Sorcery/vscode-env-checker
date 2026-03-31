@@ -78,6 +78,21 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     }
     button.row-action:hover { filter: brightness(1.1); }
     .empty { color: var(--muted); padding: 16px 0; font-size: 13px; }
+    tfoot.add-foot td { padding: 6px 8px; vertical-align: middle; border: 1px solid var(--border); }
+    tfoot.add-foot input.inp-new {
+      width: 100%; box-sizing: border-box; font-family: var(--mono); font-size: 12px;
+      color: var(--fg); background: var(--bg); border: 1px solid var(--border);
+      padding: 5px 6px; border-radius: 2px;
+    }
+    tfoot.add-foot input.inp-new::placeholder { color: var(--muted); opacity: 0.85; }
+    .add-plus-wrap { margin-top: 10px; display: flex; justify-content: center; }
+    button.btn-add-plus {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 36px; min-height: 32px; padding: 6px 14px; cursor: pointer;
+      border: 1px solid var(--border); border-radius: 4px;
+      background: var(--btn-bg); color: var(--btn-fg); font-size: 18px; line-height: 1;
+    }
+    button.btn-add-plus:hover { filter: brightness(1.1); }
   </style>
 </head>
 <body>
@@ -202,11 +217,6 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         ? 'Comparaison par clé avec « ' + cmpLabel + ' ».'
         : 'Aucun fichier de comparaison : affichage des seules clés du fichier de base.';
 
-      if (payload.rows.length === 0) {
-        tableWrap.innerHTML = '<p class="empty">Ce fichier ne contient aucune variable reconnue.</p>';
-        return;
-      }
-
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       thead.innerHTML = '<tr><th class="col-icon"></th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-act"></th><th class="col-doc"></th></tr>';
@@ -285,7 +295,79 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         tb.appendChild(tr);
       }
       table.appendChild(tb);
-      tableWrap.replaceChildren(table);
+
+      const foot = document.createElement('tfoot');
+      foot.className = 'add-foot';
+      const trAdd = document.createElement('tr');
+      const tdIconF = document.createElement('td');
+      tdIconF.className = 'col-icon';
+      const tdKeyF = document.createElement('td');
+      tdKeyF.className = 'col-key';
+      const inpKey = document.createElement('input');
+      inpKey.type = 'text';
+      inpKey.className = 'inp-new';
+      inpKey.id = 'inp-new-key';
+      inpKey.placeholder = 'Nouvelle clé';
+      inpKey.setAttribute('autocomplete', 'off');
+      tdKeyF.appendChild(inpKey);
+      const tdValF = document.createElement('td');
+      tdValF.className = 'col-val';
+      const inpVal = document.createElement('input');
+      inpVal.type = 'text';
+      inpVal.className = 'inp-new';
+      inpVal.id = 'inp-new-val';
+      inpVal.placeholder = 'Valeur';
+      inpVal.setAttribute('autocomplete', 'off');
+      tdValF.appendChild(inpVal);
+      const tdActF = document.createElement('td');
+      tdActF.className = 'col-act';
+      const tdDocF = document.createElement('td');
+      tdDocF.className = 'col-doc';
+      trAdd.appendChild(tdIconF);
+      trAdd.appendChild(tdKeyF);
+      trAdd.appendChild(tdValF);
+      trAdd.appendChild(tdActF);
+      trAdd.appendChild(tdDocF);
+      foot.appendChild(trAdd);
+      table.appendChild(foot);
+
+      const plusWrap = document.createElement('div');
+      plusWrap.className = 'add-plus-wrap';
+      const btnPlus = document.createElement('button');
+      btnPlus.type = 'button';
+      btnPlus.className = 'btn-add-plus';
+      btnPlus.setAttribute('aria-label', 'Ajouter la variable');
+      btnPlus.innerHTML = svgPlus;
+      btnPlus.addEventListener('click', function () {
+        var kEl = document.getElementById('inp-new-key');
+        var vEl = document.getElementById('inp-new-val');
+        var k = kEl ? kEl.value.trim() : '';
+        var v = vEl ? vEl.value : '';
+        if (!k) {
+          return;
+        }
+        vscode.postMessage({
+          type: 'addManualEntry',
+          basePath: payload.basePath,
+          key: k,
+          value: v
+        });
+      });
+      plusWrap.appendChild(btnPlus);
+
+      function tryAddFromEnter(ev) {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          btnPlus.click();
+        }
+      }
+      inpKey.addEventListener('keydown', tryAddFromEnter);
+      inpVal.addEventListener('keydown', tryAddFromEnter);
+
+      const frag = document.createDocumentFragment();
+      frag.appendChild(table);
+      frag.appendChild(plusWrap);
+      tableWrap.replaceChildren(frag);
     }
 
     window.addEventListener('message', function (event) {
