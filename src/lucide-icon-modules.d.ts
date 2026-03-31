@@ -31,3 +31,11 @@ declare module 'lucide/dist/esm/icons/trash-2.js' {
   const Trash2: import('lucide').IconNode;
   export default Trash2;
 }
+declare module 'lucide/dist/esm/icons/eye.js' {
+  const Eye: import('lucide').IconNode;
+  export default Eye;
+}
+declare module 'lucide/dist/esm/icons/eye-closed.js' {
+  const EyeClosed: import('lucide').IconNode;
+  export default EyeClosed;
+}

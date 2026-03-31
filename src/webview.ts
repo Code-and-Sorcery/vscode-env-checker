@@ -32,8 +32,26 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       --row-compare: rgba(72, 180, 120, 0.16);
     }
     body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg); background: var(--bg); margin: 0; padding: 12px 16px 24px; }
-    h1 { font-size: 1.1rem; font-weight: 600; margin: 0 0 12px; }
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 12px;
+    }
+    .page-header h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
     .toolbar { display: flex; flex-wrap: wrap; gap: 16px 24px; margin-bottom: 16px; align-items: flex-end; }
+    .btn-mask-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      padding: 6px; cursor: pointer; border: 1px solid var(--border); border-radius: 2px;
+      background: var(--btn-bg); color: var(--btn-fg); line-height: 0;
+    }
+    .btn-mask-toggle:hover { filter: brightness(1.08); }
     .field { display: flex; flex-direction: column; gap: 4px; min-width: 180px; flex: 1; }
     .field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
     select {
@@ -193,7 +211,10 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
   </style>
 </head>
 <body>
-  <h1>Env Checker</h1>
+  <header class="page-header">
+    <h1>Env Checker</h1>
+    <button type="button" id="btn-mask-values" class="btn-mask-toggle" aria-pressed="true" title="Afficher les valeurs"></button>
+  </header>
   <div class="toolbar">
     <div class="field">
       <label for="sel-base">Fichier de base</label>
@@ -222,6 +243,69 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     const svgCancel = ${JSON.stringify(webviewLucideHtml.x)};
     const svgGrip = ${JSON.stringify(webviewLucideHtml.gripVertical)};
     const svgTrash2 = ${JSON.stringify(webviewLucideHtml.trash2)};
+    const svgEye = ${JSON.stringify(webviewLucideHtml.eye)};
+    const svgEyeClosed = ${JSON.stringify(webviewLucideHtml.eyeClosed)};
+    window.__maskValues = true;
+
+    function maskStars(s) {
+      var str = String(s);
+      if (!str) {
+        return '';
+      }
+      var out = '';
+      for (var i = 0; i < str.length; i++) {
+        out += '*';
+      }
+      return out;
+    }
+
+    function colValDisplayText(raw) {
+      return window.__maskValues ? maskStars(raw) : String(raw);
+    }
+
+    function syncMaskButton() {
+      var btn = document.getElementById('btn-mask-values');
+      if (!btn) {
+        return;
+      }
+      var masked = !!window.__maskValues;
+      btn.innerHTML = masked ? svgEyeClosed : svgEye;
+      btn.setAttribute('aria-pressed', masked ? 'true' : 'false');
+      btn.setAttribute('aria-label', masked ? 'Afficher les valeurs' : 'Masquer les valeurs');
+      btn.title = masked ? 'Afficher les valeurs de la colonne Valeur' : 'Masquer les valeurs (chaque caractère affiché comme *)';
+    }
+
+    function applyValueMaskToDom() {
+      var table = tableWrap.querySelector('table');
+      if (!table) {
+        return;
+      }
+      var cells = table.querySelectorAll('tr.env-data-row td.col-val');
+      for (var i = 0; i < cells.length; i++) {
+        var td = cells[i];
+        if (td.querySelector('input.inp-row-edit')) {
+          continue;
+        }
+        var enc = td.getAttribute('data-value-raw');
+        if (enc === null) {
+          continue;
+        }
+        var raw = '';
+        try {
+          raw = decodeURIComponent(enc);
+        } catch (err) {
+          raw = '';
+        }
+        td.textContent = window.__maskValues ? maskStars(raw) : raw;
+      }
+    }
+
+    document.getElementById('btn-mask-values').addEventListener('click', function () {
+      window.__maskValues = !window.__maskValues;
+      syncMaskButton();
+      applyValueMaskToDom();
+    });
+    syncMaskButton();
     window.__armedDeleteBtn = null;
     function resetDeleteConfirmButton() {
       var b = window.__armedDeleteBtn;
@@ -642,7 +726,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
           inpVal.setAttribute('autocomplete', 'off');
           tdVal.appendChild(inpVal);
         } else {
-          tdVal.textContent = row.value;
+          tdVal.setAttribute('data-value-raw', encodeURIComponent(String(row.value)));
+          tdVal.textContent = colValDisplayText(String(row.value));
         }
         trData.appendChild(tdVal);
 
