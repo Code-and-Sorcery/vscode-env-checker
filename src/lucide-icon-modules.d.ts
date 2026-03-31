@@ -23,3 +23,7 @@ declare module 'lucide/dist/esm/icons/x.js' {
   const X: import('lucide').IconNode;
   export default X;
 }
+declare module 'lucide/dist/esm/icons/grip-vertical.js' {
+  const GripVertical: import('lucide').IconNode;
+  export default GripVertical;
+}

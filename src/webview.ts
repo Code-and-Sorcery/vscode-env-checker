@@ -52,6 +52,18 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; word-break: break-word; }
     tbody td { vertical-align: middle; }
     th { background: var(--head); font-weight: 600; font-size: 12px; vertical-align: middle; }
+    th.col-grip, td.col-grip { width: 30px; padding: 0; text-align: center; vertical-align: middle; }
+    th.col-grip { padding: 6px 2px; }
+    tbody td.col-grip { height: 1px; }
+    td.col-grip.diff-rowspan { vertical-align: middle; }
+    .grip-handle {
+      display: inline-flex; align-items: center; justify-content: center; cursor: grab;
+      color: var(--muted); padding: 4px 2px; user-select: none; line-height: 0;
+    }
+    .grip-handle:active { cursor: grabbing; }
+    .grip-handle[draggable="false"] { cursor: default; opacity: 0.35; }
+    /* Indicateur « insérer avant cette variable » : barre sur la 1re ligne du bloc (doc ou données). */
+    tr.drag-over-key > td:first-child { box-shadow: inset 0 3px 0 var(--vscode-focusBorder, #007fd4); }
     th.col-diff, td.col-diff { width: 44px; padding: 0; text-align: center; vertical-align: middle; }
     th.col-diff { padding: 6px 4px; }
     tbody td.col-diff { height: 1px; }
@@ -160,6 +172,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     const svgEdit = ${JSON.stringify(webviewLucideHtml.pencil)};
     const svgSave = ${JSON.stringify(webviewLucideHtml.save)};
     const svgCancel = ${JSON.stringify(webviewLucideHtml.x)};
+    const svgGrip = ${JSON.stringify(webviewLucideHtml.gripVertical)};
     function fillSelect(select, files, selectedPath, includeEmpty) {
       select.innerHTML = '';
       if (includeEmpty) {
@@ -257,9 +270,97 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
 
       const table = document.createElement('table');
       const thead = document.createElement('thead');
-      thead.innerHTML = '<tr><th class="col-diff">Diff</th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-edit"></th></tr>';
+      thead.innerHTML = '<tr><th class="col-grip" aria-label="Ordre"></th><th class="col-diff">Diff</th><th class="col-key">Clé</th><th class="col-val">Valeur</th><th class="col-edit"></th></tr>';
       table.appendChild(thead);
       const tb = document.createElement('tbody');
+
+      function attachGripHandle(tdGrip, row, editing) {
+        if (row.status === 'compareOnly') {
+          return;
+        }
+        var gh = document.createElement('span');
+        gh.className = 'grip-handle';
+        gh.innerHTML = svgGrip;
+        gh.setAttribute('aria-label', 'Réorganiser');
+        gh.dataset.dragKey = row.key;
+        gh.draggable = !editing;
+        tdGrip.appendChild(gh);
+      }
+
+      function setupDragReorder(tableBody, pl) {
+        var baseKeys = pl.rows
+          .filter(function (r) { return r.status !== 'compareOnly'; })
+          .map(function (r) { return r.key; });
+        function clearDragOver() {
+          tableBody.querySelectorAll('tr.drag-over-key').forEach(function (tr) {
+            tr.classList.remove('drag-over-key');
+          });
+        }
+        /** Première ligne du bloc variable (ligne doc si présente, sinon ligne clé/valeur). */
+        function highlightInsertBeforeKey(key) {
+          clearDragOver();
+          var docTr = null;
+          var dataTr = null;
+          tableBody.querySelectorAll('tr[data-env-key]').forEach(function (tr) {
+            if (tr.dataset.envKey !== key) {
+              return;
+            }
+            if (tr.classList.contains('env-doc-above')) {
+              docTr = tr;
+            }
+            if (tr.classList.contains('env-data-row')) {
+              dataTr = tr;
+            }
+          });
+          if (docTr) {
+            docTr.classList.add('drag-over-key');
+          } else if (dataTr) {
+            dataTr.classList.add('drag-over-key');
+          }
+        }
+        tableBody.querySelectorAll('.grip-handle[draggable="true"]').forEach(function (h) {
+          h.addEventListener('dragstart', function (e) {
+            var k = h.dataset.dragKey || '';
+            e.dataTransfer.setData('text/plain', k);
+            e.dataTransfer.effectAllowed = 'move';
+          });
+          h.addEventListener('dragend', clearDragOver);
+        });
+        tableBody.querySelectorAll('tr[data-reorder-target="1"]').forEach(function (tr) {
+          tr.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            var k = tr.dataset.envKey || '';
+            if (!k) {
+              return;
+            }
+            highlightInsertBeforeKey(k);
+          });
+          tr.addEventListener('drop', function (e) {
+            e.preventDefault();
+            clearDragOver();
+            var fromKey = e.dataTransfer.getData('text/plain');
+            var toKey = tr.dataset.envKey || '';
+            if (!fromKey || !toKey || fromKey === toKey) {
+              return;
+            }
+            var order = baseKeys.slice();
+            var fi = order.indexOf(fromKey);
+            var ti = order.indexOf(toKey);
+            if (fi < 0 || ti < 0) {
+              return;
+            }
+            order.splice(fi, 1);
+            var newTi = order.indexOf(toKey);
+            order.splice(newTi, 0, fromKey);
+            vscode.postMessage({
+              type: 'reorderKeys',
+              basePath: pl.basePath,
+              orderedKeys: order
+            });
+          });
+        });
+      }
 
       function setDiffIcon(diffInner, row) {
         if (row.status === 'both') {
@@ -287,6 +388,13 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         if (docRowVisible) {
           const trDoc = document.createElement('tr');
           trDoc.className = 'env-doc-above row-' + row.status;
+          trDoc.dataset.envKey = row.key;
+          trDoc.setAttribute('data-reorder-target', row.status !== 'compareOnly' ? '1' : '0');
+          const tdGripRowspan = document.createElement('td');
+          tdGripRowspan.className = 'col-grip diff-rowspan';
+          tdGripRowspan.rowSpan = 2;
+          attachGripHandle(tdGripRowspan, row, editing);
+          trDoc.appendChild(tdGripRowspan);
           const tdDiffRowspan = document.createElement('td');
           tdDiffRowspan.className = 'col-diff diff-rowspan';
           tdDiffRowspan.rowSpan = 2;
@@ -321,6 +429,14 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         const trData = document.createElement('tr');
         trData.className = 'env-data-row row-' + row.status;
         trData.dataset.envKey = row.key;
+        trData.setAttribute('data-reorder-target', row.status !== 'compareOnly' ? '1' : '0');
+
+        if (!docRowVisible) {
+          const tdGrip = document.createElement('td');
+          tdGrip.className = 'col-grip';
+          attachGripHandle(tdGrip, row, editing);
+          trData.appendChild(tdGrip);
+        }
 
         if (!docRowVisible) {
           const tdDiff = document.createElement('td');
@@ -416,10 +532,13 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         tb.appendChild(trData);
       }
       table.appendChild(tb);
+      setupDragReorder(tb, payload);
 
       const foot = document.createElement('tfoot');
       foot.className = 'add-foot';
       const trAdd = document.createElement('tr');
+      const tdGripF = document.createElement('td');
+      tdGripF.className = 'col-grip';
       const tdIconF = document.createElement('td');
       tdIconF.className = 'col-diff';
       const tdKeyF = document.createElement('td');
@@ -444,6 +563,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       tdValF.appendChild(inpNewVal);
       const tdEditF = document.createElement('td');
       tdEditF.className = 'col-edit';
+      trAdd.appendChild(tdGripF);
       trAdd.appendChild(tdIconF);
       trAdd.appendChild(tdKeyF);
       trAdd.appendChild(tdValF);

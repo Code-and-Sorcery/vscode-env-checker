@@ -144,6 +144,75 @@ export async function writeEnvFileContent(uri: vscode.Uri, newText: string): Pro
   await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newText));
 }
 
+/**
+ * Réordonne les blocs (commentaires au-dessus + ligne KEY=value) du fichier selon `orderedKeys`.
+ * Exige des clés uniques et que `orderedKeys` soit une permutation exacte des clés du fichier.
+ */
+export function reorderEnvKeysInContent(content: string, orderedKeys: string[]): string {
+  const lines = content.split('\n');
+  const entries = parseEnvFile(content);
+  if (entries.length === 0) {
+    return content;
+  }
+  const keysInOrder = entries.map((e) => e.key);
+  const unique = new Set(keysInOrder);
+  if (unique.size !== keysInOrder.length) {
+    throw new Error('DUPLICATE_KEYS_IN_FILE');
+  }
+  if (orderedKeys.length !== unique.size) {
+    throw new Error('ORDER_MISMATCH');
+  }
+  for (const k of orderedKeys) {
+    if (!unique.has(k)) {
+      throw new Error('UNKNOWN_KEY');
+    }
+  }
+  for (const k of unique) {
+    if (!orderedKeys.includes(k)) {
+      throw new Error('MISSING_KEY');
+    }
+  }
+
+  const blocks: { key: string; start: number; end: number }[] = [];
+  for (const e of entries) {
+    const kl = e.line - 1;
+    const start = findDocBlockStart(lines, kl);
+    blocks.push({ key: e.key, start, end: kl });
+  }
+
+  const firstStart = blocks[0].start;
+  const lastEnd = blocks[blocks.length - 1].end;
+  const header = lines.slice(0, firstStart);
+  const footer = lines.slice(lastEnd + 1);
+
+  const blockText = new Map<string, string>();
+  for (const b of blocks) {
+    blockText.set(b.key, lines.slice(b.start, b.end + 1).join('\n'));
+  }
+
+  const body = orderedKeys.map((k) => blockText.get(k)!).join('\n');
+  const chunks: string[] = [];
+  if (header.length > 0) {
+    chunks.push(header.join('\n'));
+  }
+  chunks.push(body);
+  if (footer.length > 0) {
+    chunks.push(footer.join('\n'));
+  }
+  let out = chunks.join('\n');
+  if ((content.endsWith('\n') || content.length === 0) && out.length > 0 && !out.endsWith('\n')) {
+    out += '\n';
+  }
+  return out;
+}
+
+export async function reorderEnvKeysInBase(baseFsPath: string, orderedKeys: string[]): Promise<void> {
+  const uri = vscode.Uri.file(baseFsPath);
+  const content = await readEnvContent(baseFsPath);
+  const next = reorderEnvKeysInContent(content, orderedKeys);
+  await writeEnvFileContent(uri, next);
+}
+
 export async function deleteKeyFromEnvFile(baseFsPath: string, key: string): Promise<void> {
   const uri = vscode.Uri.file(baseFsPath);
   const content = await readEnvContent(baseFsPath);

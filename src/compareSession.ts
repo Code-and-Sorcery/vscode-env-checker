@@ -11,6 +11,7 @@ import {
   appendManualEntryToBase,
   deleteKeyFromEnvFile,
   isValidEnvKey,
+  reorderEnvKeysInBase,
   saveEnvRowEdit,
 } from './envFileEdit';
 import { getEnvCheckerWebviewHtml, postComparePayloadToWebview } from './webview';
@@ -172,6 +173,31 @@ export class CompareSession {
       } catch (e) {
         if (e instanceof Error && e.message === 'INVALID_KEY') {
           vscode.window.showWarningMessage('Clé invalide.');
+        }
+      }
+      return;
+    }
+    if (type === 'reorderKeys') {
+      const baseFs = msg.basePath as string;
+      const orderedKeys = msg.orderedKeys;
+      if (!baseFs || !Array.isArray(orderedKeys)) {
+        return;
+      }
+      const keys = orderedKeys.filter((k): k is string => typeof k === 'string');
+      if (keys.length !== orderedKeys.length) {
+        return;
+      }
+      try {
+        await reorderEnvKeysInBase(baseFs, keys);
+        await this.push();
+      } catch (e) {
+        const code = e instanceof Error ? e.message : '';
+        if (code === 'DUPLICATE_KEYS_IN_FILE') {
+          vscode.window.showWarningMessage(
+            'Réordonnancement impossible : le fichier contient des clés en double.',
+          );
+        } else {
+          vscode.window.showWarningMessage('Impossible de réordonner les variables dans le fichier .env.');
         }
       }
       return;

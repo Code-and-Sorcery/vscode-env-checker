@@ -5,6 +5,7 @@ import Plus from 'lucide/dist/esm/icons/plus.js';
 import Pencil from 'lucide/dist/esm/icons/pencil.js';
 import Save from 'lucide/dist/esm/icons/save.js';
 import X from 'lucide/dist/esm/icons/x.js';
+import GripVertical from 'lucide/dist/esm/icons/grip-vertical.js';
 
 function escapeXmlAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -33,4 +34,6 @@ export const webviewLucideHtml = {
   pencil: lucideIconHtml(Pencil),
   save: lucideIconHtml(Save),
   x: lucideIconHtml(X),
+  /** Lucide n’expose pas « grid-vertical » ; grip-vertical est l’icône standard de poignée de glisser-déposer. */
+  gripVertical: lucideIconHtml(GripVertical),
 } as const;
