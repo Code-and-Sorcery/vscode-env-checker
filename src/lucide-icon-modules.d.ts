@@ -39,3 +39,7 @@ declare module 'lucide/dist/esm/icons/eye-closed.js' {
   const EyeClosed: import('lucide').IconNode;
   export default EyeClosed;
 }
+declare module 'lucide/dist/esm/icons/file-text.js' {
+  const FileText: import('lucide').IconNode;
+  export default FileText;
+}

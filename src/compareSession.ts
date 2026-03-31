@@ -117,6 +117,18 @@ export class CompareSession {
       await this.push();
       return;
     }
+    if (type === 'openBaseAsText') {
+      const baseFs = msg.basePath as string;
+      if (baseFs && typeof baseFs === 'string') {
+        const envFiles = await loadEnvFileOptions(this.dirUri);
+        if (!envFiles.some((f) => f.path === baseFs)) {
+          return;
+        }
+        const uri = vscode.Uri.file(baseFs);
+        await vscode.commands.executeCommand('vscode.openWith', uri, 'default', vscode.ViewColumn.Beside);
+      }
+      return;
+    }
     if (type === 'select') {
       if (typeof msg.basePath === 'string' && msg.basePath.length > 0) {
         this.basePath = msg.basePath;

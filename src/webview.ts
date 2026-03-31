@@ -44,6 +44,12 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       font-size: 1.1rem;
       font-weight: 600;
     }
+    .page-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
     .toolbar { display: flex; flex-wrap: wrap; gap: 16px 24px; margin-bottom: 16px; align-items: flex-end; }
     .btn-mask-toggle {
       display: inline-flex; align-items: center; justify-content: center;
@@ -52,6 +58,11 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       background: var(--btn-bg); color: var(--btn-fg); line-height: 0;
     }
     .btn-mask-toggle:hover { filter: brightness(1.08); }
+    .btn-mask-toggle:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: none;
+    }
     .field { display: flex; flex-direction: column; gap: 4px; min-width: 180px; flex: 1; }
     .field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
     select {
@@ -213,7 +224,12 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
 <body>
   <header class="page-header">
     <h1>Env Checker</h1>
-    <button type="button" id="btn-mask-values" class="btn-mask-toggle" aria-pressed="true" title="Afficher les valeurs"></button>
+    <div class="page-header-actions">
+      <button type="button" id="btn-open-base-text" class="btn-mask-toggle" disabled
+        aria-label="Ouvrir le fichier de base en éditeur texte"
+        title="Ouvrir le .env de base dans l’éditeur texte (hors vue Env Checker)"></button>
+      <button type="button" id="btn-mask-values" class="btn-mask-toggle" aria-pressed="true" title="Afficher les valeurs"></button>
+    </div>
   </header>
   <div class="toolbar">
     <div class="field">
@@ -245,7 +261,15 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     const svgTrash2 = ${JSON.stringify(webviewLucideHtml.trash2)};
     const svgEye = ${JSON.stringify(webviewLucideHtml.eye)};
     const svgEyeClosed = ${JSON.stringify(webviewLucideHtml.eyeClosed)};
+    const svgFileText = ${JSON.stringify(webviewLucideHtml.fileText)};
     window.__maskValues = true;
+
+    (function initOpenBaseTextButton() {
+      var btn = document.getElementById('btn-open-base-text');
+      if (btn) {
+        btn.innerHTML = svgFileText;
+      }
+    })();
 
     function maskStars(s) {
       var str = String(s);
@@ -273,6 +297,15 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       btn.setAttribute('aria-pressed', masked ? 'true' : 'false');
       btn.setAttribute('aria-label', masked ? 'Afficher les valeurs' : 'Masquer les valeurs');
       btn.title = masked ? 'Afficher les valeurs de la colonne Valeur' : 'Masquer les valeurs (chaque caractère affiché comme *)';
+    }
+
+    function syncOpenBaseTextButton() {
+      var btn = document.getElementById('btn-open-base-text');
+      if (!btn) {
+        return;
+      }
+      var pl = window.__lastPayload;
+      btn.disabled = !(pl && pl.basePath);
     }
 
     function applyValueMaskToDom() {
@@ -304,6 +337,13 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       window.__maskValues = !window.__maskValues;
       syncMaskButton();
       applyValueMaskToDom();
+    });
+    document.getElementById('btn-open-base-text').addEventListener('click', function () {
+      var pl = window.__lastPayload;
+      if (!pl || !pl.basePath) {
+        return;
+      }
+      vscode.postMessage({ type: 'openBaseAsText', basePath: pl.basePath });
     });
     syncMaskButton();
     window.__armedDeleteBtn = null;
@@ -403,6 +443,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         selBase.disabled = true;
         selCompare.innerHTML = '';
         selCompare.disabled = true;
+        syncOpenBaseTextButton();
         return;
       }
 
@@ -427,6 +468,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       if (!payload.basePath) {
         hint.textContent = 'Choisissez un fichier de base pour afficher le tableau.';
         tableWrap.innerHTML = '<p class="empty">Aucun tableau : pas de fichier de base.</p>';
+        syncOpenBaseTextButton();
         return;
       }
 
@@ -896,6 +938,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
       inpNewVal.addEventListener('keydown', tryAddFromEnter);
 
       tableWrap.replaceChildren(table);
+      syncOpenBaseTextButton();
     }
 
     window.addEventListener('message', function (event) {

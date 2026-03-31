@@ -9,6 +9,7 @@ import GripVertical from 'lucide/dist/esm/icons/grip-vertical.js';
 import Trash2 from 'lucide/dist/esm/icons/trash-2.js';
 import Eye from 'lucide/dist/esm/icons/eye.js';
 import EyeClosed from 'lucide/dist/esm/icons/eye-closed.js';
+import FileText from 'lucide/dist/esm/icons/file-text.js';
 
 function escapeXmlAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -42,4 +43,5 @@ export const webviewLucideHtml = {
   trash2: lucideIconHtml(Trash2),
   eye: lucideIconHtml(Eye),
   eyeClosed: lucideIconHtml(EyeClosed),
+  fileText: lucideIconHtml(FileText),
 } as const;
