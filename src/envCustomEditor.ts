@@ -29,7 +29,12 @@ class EnvCustomEditorProvider implements vscode.CustomTextEditorProvider {
     const nonce = String(Date.now());
     const subs: vscode.Disposable[] = [];
 
-    const session = new CompareSession({ dirUri, webview: webviewPanel.webview, nonce });
+    const session = new CompareSession({
+      dirUri,
+      webview: webviewPanel.webview,
+      nonce,
+      panelEnvFsPath: document.uri.fsPath,
+    });
     session.attach(subs);
 
     const refresh = (): void => {

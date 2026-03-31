@@ -15,7 +15,12 @@ async function openPanel(_context: vscode.ExtensionContext, primaryUri: vscode.U
 
   const nonce = String(Date.now());
   const subs: vscode.Disposable[] = [];
-  const session = new CompareSession({ dirUri, webview: panel.webview, nonce });
+  const session = new CompareSession({
+    dirUri,
+    webview: panel.webview,
+    nonce,
+    panelEnvFsPath: primaryUri.fsPath,
+  });
   session.attach(subs);
 
   const refresh = (): void => {

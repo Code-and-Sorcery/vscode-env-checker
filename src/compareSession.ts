@@ -20,6 +20,8 @@ export interface CompareSessionOptions {
   dirUri: vscode.Uri;
   webview: vscode.Webview;
   nonce: string;
+  /** Fichier .env ouvert dans ce panneau : premier sélecteur (base) l’utilise par défaut s’il est dans la liste. */
+  panelEnvFsPath?: string;
 }
 
 /**
@@ -28,6 +30,7 @@ export interface CompareSessionOptions {
 export class CompareSession {
   private readonly dirUri: vscode.Uri;
   private readonly webview: vscode.Webview;
+  private readonly panelEnvFsPath: string | undefined;
   private basePath: string | null = null;
   private comparePath: string | null = null;
   /** Si true, l’utilisateur a choisi explicitement « aucune comparaison » — on ne réapplique pas le défaut .env.example. */
@@ -37,6 +40,7 @@ export class CompareSession {
   constructor(options: CompareSessionOptions) {
     this.dirUri = options.dirUri;
     this.webview = options.webview;
+    this.panelEnvFsPath = options.panelEnvFsPath;
     this.webview.html = getEnvCheckerWebviewHtml(this.webview, options.nonce);
   }
 
@@ -58,8 +62,15 @@ export class CompareSession {
 
     if (!this.seeded) {
       const d = defaultBaseAndCompare(envFiles);
-      this.basePath = d.basePath;
-      this.comparePath = d.comparePath;
+      const panelOk =
+        this.panelEnvFsPath !== undefined &&
+        envFiles.some((f) => f.path === this.panelEnvFsPath);
+      this.basePath = panelOk ? this.panelEnvFsPath! : d.basePath;
+      let compare = d.comparePath;
+      if (!compare || compare === this.basePath) {
+        compare = envFiles.find((f) => f.path !== this.basePath)?.path ?? null;
+      }
+      this.comparePath = compare;
       this.seeded = true;
     }
 
