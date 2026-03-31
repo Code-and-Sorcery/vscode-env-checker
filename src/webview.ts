@@ -197,7 +197,7 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
   <div class="toolbar">
     <div class="field">
       <label for="sel-base">Fichier de base</label>
-      <select id="sel-base"></select>
+      <select id="sel-base" disabled aria-disabled="true" title="Fichier de base imposé par l’éditeur ouvert"></select>
     </div>
     <div class="field">
       <label for="sel-compare">Fichier de comparaison</label>
@@ -316,12 +316,14 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
         hint.textContent = 'Aucun fichier .env dans ce dossier.';
         tableWrap.innerHTML = '';
         selBase.innerHTML = '';
+        selBase.disabled = true;
         selCompare.innerHTML = '';
         selCompare.disabled = true;
         return;
       }
 
       fillSelect(selBase, payload.envFiles, payload.basePath || '', false);
+      selBase.disabled = true;
       const base = payload.basePath || '';
       const others = payload.envFiles.filter(function (f) { return f.path !== base; });
       selCompare.disabled = others.length === 0;
