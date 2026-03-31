@@ -10,26 +10,6 @@ function formatEnvAssignment(key: string, value: string): string {
   return `${key}=${value}`;
 }
 
-const KV_PREFIX = /^(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*\s*=/;
-
-/** Indice 0-based de la première ligne du bloc (# et lignes vides) juste au-dessus de `keyLine`. */
-function findDocBlockStart(lines: string[], keyLine: number): number {
-  let i = keyLine - 1;
-  while (i >= 0) {
-    const raw = lines[i];
-    const t = raw.trim();
-    if (t === '' || t.startsWith('#')) {
-      i--;
-      continue;
-    }
-    if (KV_PREFIX.test(raw.trim())) {
-      return i + 1;
-    }
-    return i + 1;
-  }
-  return 0;
-}
-
 function formatCommentLines(text: string): string[] {
   if (!text.trim()) {
     return [];
@@ -47,13 +27,13 @@ function formatCommentLines(text: string): string[] {
   });
 }
 
-/** Lignes `# …` + ligne vide à insérer au-dessus d’une assignation (même logique que replaceDocumentationAboveKey). */
+/** Lignes `# …` à placer juste au-dessus d’une assignation (aligné sur {@link parseEnvFile}). */
 function commentBlockLinesAboveKey(commentText: string): string[] {
   const formatted = formatCommentLines(commentText);
   while (formatted.length > 0 && formatted[formatted.length - 1] === '') {
     formatted.pop();
   }
-  return formatted.length > 0 ? [...formatted, ''] : [];
+  return formatted.length > 0 ? [...formatted] : [];
 }
 
 /**
@@ -67,12 +47,12 @@ export function replaceDocumentationAboveKey(content: string, key: string, comme
     return content;
   }
   const keyLine = entry.line - 1;
-  const docStart = findDocBlockStart(lines, keyLine);
+  const docStart = entry.docStartLine - 1;
   const formatted = formatCommentLines(commentText);
   while (formatted.length > 0 && formatted[formatted.length - 1] === '') {
     formatted.pop();
   }
-  const insert = formatted.length > 0 ? [...formatted, ''] : [];
+  const insert = formatted.length > 0 ? [...formatted] : [];
   const before = lines.slice(0, docStart);
   const fromKey = lines.slice(keyLine);
   return [...before, ...insert, ...fromKey].join('\n');
@@ -126,11 +106,20 @@ export async function saveEnvRowEdit(
   await writeEnvFileContent(vscode.Uri.file(baseFsPath), content);
 }
 
-/** Supprime toutes les lignes de définition de `key` (d’après le parseur). */
+/**
+ * Supprime chaque occurrence de `key` : de `docStartLine` jusqu’à la ligne d’assignation (parseur).
+ */
 export function removeKeyFromContent(content: string, key: string): string {
-  const entries = parseEnvFile(content);
-  const toRemove = new Set(entries.filter((e) => e.key === key).map((e) => e.line - 1));
-  const lines = content.split(/\n/);
+  const lines = content.split('\n');
+  const entries = parseEnvFile(content).filter((e) => e.key === key);
+  const toRemove = new Set<number>();
+  for (const e of entries) {
+    const keyLine = e.line - 1;
+    const blockStart = e.docStartLine - 1;
+    for (let line = blockStart; line <= keyLine; line++) {
+      toRemove.add(line);
+    }
+  }
   return lines.filter((_, i) => !toRemove.has(i)).join('\n');
 }
 
@@ -185,7 +174,7 @@ export function reorderEnvKeysInContent(content: string, orderedKeys: string[]):
   const blocks: { key: string; start: number; end: number }[] = [];
   for (const e of entries) {
     const kl = e.line - 1;
-    const start = findDocBlockStart(lines, kl);
+    const start = e.docStartLine - 1;
     blocks.push({ key: e.key, start, end: kl });
   }
 
