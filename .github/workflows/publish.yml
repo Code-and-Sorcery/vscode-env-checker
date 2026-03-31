@@ -1,5 +1,7 @@
-# Publie l’extension sur le Visual Studio Marketplace lorsqu’un tag v* est poussé.
-# Prérequis : secret VSCE_PAT (Personal Access Token, scope Marketplace > Manage).
+# Publie l’extension sur le Visual Studio Marketplace et sur Open VSX lorsqu’un tag v* est poussé.
+# Prérequis (secrets du dépôt) :
+#   VSCE_PAT — Personal Access Token Azure DevOps, scope Marketplace > Manage.
+#   OVSX_PAT — jeton https://open-vsx.org/user-settings/tokens (accord Publisher Eclipse requis).
 
 name: Publish Extension
 
@@ -27,7 +29,19 @@ jobs:
 
       - run: pnpm run typecheck
 
+      - name: Package extension (.vsix)
+        run: pnpm run pack
+
       - name: Publish to VS Code Marketplace
-        run: pnpm exec vsce publish --no-dependencies
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          VSIX="vscode-env-checker-$(node -p "require('./package.json').version").vsix"
+          pnpm exec vsce publish --no-dependencies -i "$VSIX"
+
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          VSIX="vscode-env-checker-$(node -p "require('./package.json').version").vsix"
+          pnpm exec ovsx publish --no-dependencies -p "$OVSX_PAT" "$VSIX"
