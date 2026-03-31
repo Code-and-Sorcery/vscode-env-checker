@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { CompareViewPayload } from './compareModel';
+import { webviewLucideHtml } from './lucideSvg';
 
 export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string): string {
   const csp = [
@@ -101,19 +102,23 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     }
     svg.icon-svg { display: block; width: 16px; height: 16px; flex-shrink: 0; }
     button.btn-doc-edit {
-      font-size: 10px; padding: 2px 7px; cursor: pointer; border: 1px solid var(--border); border-radius: 2px;
-      background: var(--btn-bg); color: var(--btn-fg); line-height: 1.2;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 4px; cursor: pointer; border: 1px solid var(--border); border-radius: 2px;
+      background: var(--btn-bg); color: var(--btn-fg); line-height: 0;
     }
     button.btn-doc-edit:hover { filter: brightness(1.08); }
     .row-edit-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
     button.row-action {
-      font-size: 11px;
-      padding: 4px 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
       cursor: pointer;
       border: 1px solid var(--border);
       border-radius: 2px;
       background: var(--btn-bg);
       color: var(--btn-fg);
+      line-height: 0;
     }
     button.row-action:hover { filter: brightness(1.1); }
     .empty { color: var(--muted); padding: 16px 0; font-size: 13px; }
@@ -149,9 +154,12 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
     const hint = document.getElementById('hint');
     const tableWrap = document.getElementById('table-wrap');
 
-    const svgCheck = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3 3 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    const svgMinus = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-    const svgPlus = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 4v8M4 8h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    const svgCheck = ${JSON.stringify(webviewLucideHtml.check)};
+    const svgMinus = ${JSON.stringify(webviewLucideHtml.minus)};
+    const svgPlus = ${JSON.stringify(webviewLucideHtml.plus)};
+    const svgEdit = ${JSON.stringify(webviewLucideHtml.pencil)};
+    const svgSave = ${JSON.stringify(webviewLucideHtml.save)};
+    const svgCancel = ${JSON.stringify(webviewLucideHtml.x)};
     function fillSelect(select, files, selectedPath, includeEmpty) {
       select.innerHTML = '';
       if (includeEmpty) {
@@ -363,7 +371,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
             var btnSave = document.createElement('button');
             btnSave.type = 'button';
             btnSave.className = 'row-action';
-            btnSave.textContent = 'Enregistrer';
+            btnSave.setAttribute('aria-label', 'Enregistrer');
+            btnSave.innerHTML = svgSave;
             btnSave.addEventListener('click', function () {
               vscode.postMessage({
                 type: 'saveRow',
@@ -377,7 +386,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
             var btnCancel = document.createElement('button');
             btnCancel.type = 'button';
             btnCancel.className = 'row-action';
-            btnCancel.textContent = 'Annuler';
+            btnCancel.setAttribute('aria-label', 'Annuler');
+            btnCancel.innerHTML = svgCancel;
             btnCancel.addEventListener('click', function () {
               window.__editingRowKey = null;
               render(window.__lastPayload);
@@ -389,7 +399,8 @@ export function getEnvCheckerWebviewHtml(webview: vscode.Webview, nonce: string)
             var btnEdit = document.createElement('button');
             btnEdit.type = 'button';
             btnEdit.className = 'btn-doc-edit';
-            btnEdit.textContent = 'Éditer';
+            btnEdit.setAttribute('aria-label', 'Éditer');
+            btnEdit.innerHTML = svgEdit;
             btnEdit.addEventListener('click', function (ev) {
               ev.preventDefault();
               window.__editingRowKey = row.key;
